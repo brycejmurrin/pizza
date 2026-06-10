@@ -2,7 +2,8 @@
 
 An arcade pizzeria built with raw WebGL — no frameworks, no dependencies,
 no build step. Runs in any modern browser on desktop or mobile. A sibling
-of [Neon Swarm](../../../project1): same engine style, different kitchen.
+of [Neon Swarm](https://github.com/brycejmurrin/project1): same engine
+style, different kitchen.
 
 Customers walk up to the counter with order tickets. Build each pizza from
 the topping bins, slide it into the oven, pull it out in the golden window,

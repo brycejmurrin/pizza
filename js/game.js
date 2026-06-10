@@ -12,6 +12,7 @@
   const scoreEl = document.getElementById("score");
   const hiscoreEl = document.getElementById("hiscore");
   const stageEl = document.getElementById("stage");
+  const stageLabelEl = document.getElementById("stage-label");
   const overlayEl = document.getElementById("overlay");
   const titleEl = document.getElementById("title");
   const subtitleEl = document.getElementById("subtitle");
@@ -157,9 +158,11 @@
     const ovenW = pr * 2.6;
     const ovenH = pr * 2.3;
 
+    // Inset the queue so edge customers' tickets stay clear of the screen
+    // corners and the pause button.
     const slots = [];
     for (let i = 0; i < DP.maxCust; i++) {
-      slots.push((W * (i + 0.5)) / DP.maxCust);
+      slots.push(W * (0.1 + (0.8 * (i + 0.5)) / DP.maxCust));
     }
 
     return {
@@ -189,7 +192,9 @@
   function updateHud() {
     scoreEl.textContent = coins;
     hiscoreEl.textContent = hiscore;
-    stageEl.textContent = state === ST.ATTRACT ? " " : "DAY " + day;
+    const inGame = state !== ST.ATTRACT;
+    stageLabelEl.textContent = inGame ? "DAY " + day : "\u00a0";
+    stageEl.textContent = inGame ? served + "/" + DP.quota : "\u00a0";
   }
 
   function showOverlay(title, subtitle, prompt, dead) {
@@ -666,13 +671,6 @@
         Renderer.quad(tx * tile, L.counterY + ty * tile, tile, tile, (tx + ty) % 2 ? FLOOR_A : FLOOR_B);
       }
     }
-    // string lights on the wall
-    for (let i = 0; i < 9; i++) {
-      const lx = (L.W * (i + 0.5)) / 9;
-      const ly = 14 + Math.sin(i * 2.1) * 4;
-      const on = Math.sin(worldT * 2 + i * 1.7) > -0.3;
-      Renderer.circle(lx, ly + 42, 3.5, on ? [1, 0.7, 0.25, 0.9] : [0.3, 0.2, 0.15, 1], 8);
-    }
   }
 
   function drawCounter(L) {
@@ -783,12 +781,14 @@
     }
   }
 
+  // Reputation hearts sit on the counter band, out of the busy top corners.
   function drawHearts(L) {
+    const y = L.counterY + 19;
     for (let i = 0; i < HEARTS_MAX; i++) {
       const on = i < hearts;
-      Sprites.heart(18 + i * 26, L.top - 10, 11, on ? [1, 0.25, 0.4, 1] : [0.3, 0.18, 0.25, 0.8]);
+      Sprites.heart(22 + i * 27, y, 12.5, [0.16, 0.09, 0.05, 1]);
+      Sprites.heart(22 + i * 27, y, 11, on ? [1, 0.25, 0.4, 1] : [0.32, 0.21, 0.14, 1]);
     }
-    Sprites.text(L.W - 14, L.top - 16, 2.6, "SERVED " + served + "/" + DP.quota, [1, 1, 1, 0.85], "right");
   }
 
   function drawFlights() {
