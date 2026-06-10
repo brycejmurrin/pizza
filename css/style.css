@@ -202,7 +202,26 @@ html, body {
   border-top: 1px solid rgba(255, 178, 77, 0.3);
   color: #aee9ff !important;
   font-size: 12px !important;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
+  line-height: 1.7;
+}
+
+.how-keys + .how-keys {
+  margin-top: 0;
+  padding-top: 10px;
+  border-top: none;
+}
+
+kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  background: rgba(174, 233, 255, 0.12);
+  border: 1px solid rgba(174, 233, 255, 0.4);
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #aee9ff;
 }
 
 #how-close {

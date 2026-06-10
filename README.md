@@ -13,12 +13,26 @@ and serve the right customer before their patience bar runs out.
 
 ## How to play
 
-- **Mobile:** tap topping bins to build the pizza, tap the oven to bake /
-  pull, then tap a customer to serve them.
-- **HOW TO PLAY** on the title screen (or in the pause menu) opens the
-  full in-game instructions.
-- **Desktop:** `1`–`6` toggle toppings, `Space`/`B` oven in/out, `X`/`T`
-  trash, `Q W E R` serve customer 1–4, `P`/`Esc` pause.
+**HOW TO PLAY** on the title screen (or in the pause menu) opens the full
+in-game instructions.
+
+### iOS / Touch
+| Action | Gesture |
+|--------|---------|
+| Toggle a topping | Tap its bin |
+| Load / pull the oven | Tap the oven |
+| Serve a customer | Tap them |
+| Inspect an order | Tap & hold the customer |
+| Pause | Pause button (top-right) |
+
+### Desktop / Keyboard
+| Action | Key |
+|--------|-----|
+| Toggle toppings 1–6 | `1` `2` `3` `4` `5` `6` |
+| Load / pull the oven | `Space` |
+| Trash the pizza | `X` |
+| Serve customer 1–4 | `Q` `W` `E` `R` |
+| Pause / unpause | `P` or `Esc` |
 - Every order needs **sauce + cheese** plus the extras shown on the ticket.
   The match must be exact — no surprise olives.
 - The bake bar: gray = raw, green = done, **gold = perfect (+25 tip)**,
