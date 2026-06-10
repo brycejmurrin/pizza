@@ -28,13 +28,14 @@ in-game instructions.
 ### Desktop / Keyboard
 | Action | Key |
 |--------|-----|
-| Toggle toppings 1–6 | `1` `2` `3` `4` `5` `6` |
+| Toggle toppings 1–9 | `1` `2` `3` `4` `5` `6` `7` `8` `9` |
 | Load / pull the oven | `Space` |
 | Trash the pizza | `X` |
 | Serve customer 1–4 | `Q` `W` `E` `R` |
 | Pause / unpause | `P` or `Esc` |
-- Every order needs **sauce + cheese** plus the extras shown on the ticket.
-  The match must be exact — no surprise olives.
+- Every order needs **sauce + cheese** plus extras from the ticket.
+  Seven extras: pepperoni, mushroom, olive, pepper, anchovy, onion,
+  jalapeño. The match must be exact — no surprise anchovies.
 - The bake bar: gray = raw, green = done, **gold = perfect (+25 tip)**,
   red = burnt. Raw and burnt pizzas get refused; trash them.
 - Pay is 50 coins + up to 50 tip for speed + 25 for a perfect bake.
@@ -45,6 +46,8 @@ in-game instructions.
   x2 at a 6 streak). A walkout breaks the streak.
 - **VIPs:** from day 3, gold-clad customers with crowns pay double —
   but their patience drains 30% faster.
+- **Rush customers:** from day 5, orange-bordered tickets — pay 1.5×
+  base but patience drains at twice the normal rate.
 - Days get busier: more simultaneous customers, more extras per order,
   thinner patience. High score is saved locally.
 - Looping chiptune tarantella plays during shifts (it speeds up as the

@@ -27,6 +27,12 @@ const Sprites = (function () {
     oliveHole: [0.30, 0.36, 0.20, 1],
     pepper:    [0.22, 0.72, 0.30, 1],
     pepperDk:  [0.13, 0.48, 0.20, 1],
+    anchovy:   [0.74, 0.48, 0.36, 1],
+    anchoDark: [0.50, 0.28, 0.20, 1],
+    onion:     [0.90, 0.85, 0.95, 1],
+    onionDk:   [0.68, 0.60, 0.78, 1],
+    jalapeno:  [0.92, 0.28, 0.18, 1],
+    jalDark:   [0.68, 0.14, 0.10, 1],
     burnt:     [0.16, 0.10, 0.06, 1],
   };
 
@@ -54,6 +60,9 @@ const Sprites = (function () {
     mushroom:  [[0.8, 0.52], [2.5, 0.56], [4.0, 0.50], [5.6, 0.54], [1.7, 0.20], [3.4, 0.24]],
     olive:     [[0.4, 0.60], [1.3, 0.30], [2.1, 0.58], [3.0, 0.28], [3.8, 0.60], [4.7, 0.32], [5.5, 0.58]],
     pepper:    [[1.1, 0.55], [2.8, 0.50], [4.6, 0.55], [0.3, 0.26], [3.7, 0.24], [5.8, 0.52]],
+    anchovy:   [[0.5, 0.58], [1.8, 0.52], [3.3, 0.56], [4.8, 0.50], [2.6, 0.22], [5.1, 0.28]],
+    onion:     [[0.7, 0.50], [2.0, 0.55], [3.5, 0.48], [5.0, 0.52], [1.2, 0.22], [4.3, 0.25]],
+    jalapeno:  [[0.3, 0.56], [1.5, 0.50], [2.9, 0.54], [4.2, 0.48], [0.9, 0.24], [3.6, 0.22]],
   };
 
   // bake: 0 = raw, ~1 = perfect, >1.3 = burnt. rot rotates the toppings.
@@ -86,7 +95,7 @@ const Sprites = (function () {
     }
     if (!top) return;
 
-    for (const kind of ["pepperoni", "mushroom", "olive", "pepper"]) {
+    for (const kind of ["pepperoni", "mushroom", "olive", "pepper", "anchovy", "onion", "jalapeno"]) {
       if (!top.has(kind)) continue;
       for (const [a0, rf] of SPOTS[kind]) {
         const a = a0 + rot;
@@ -110,6 +119,16 @@ const Sprites = (function () {
     } else if (kind === "pepper") {
       R.rotQuad(x, y, r * 0.24, r * 0.07, a + 0.8, lerpC(C.pepper, C.burnt, burn));
       R.rotQuad(x, y, r * 0.18, r * 0.04, a + 0.8, lerpC(C.pepperDk, C.burnt, burn));
+    } else if (kind === "anchovy") {
+      R.rotQuad(x, y, r * 0.30, r * 0.07, a + 0.4, lerpC(C.anchovy, C.burnt, burn));
+      R.rotQuad(x + r * 0.04, y - r * 0.03, r * 0.22, r * 0.04, a + 0.4, lerpC(C.anchoDark, C.burnt, burn));
+    } else if (kind === "onion") {
+      R.circle(x, y, r * 0.12, lerpC(C.onion, C.burnt, burn));
+      R.circle(x, y, r * 0.058, lerpC(C.onionDk, C.burnt, burn));
+    } else if (kind === "jalapeno") {
+      R.circle(x, y, r * 0.10, lerpC(C.jalapeno, C.burnt, burn));
+      R.circle(x - r * 0.025, y - r * 0.025, r * 0.04, lerpC(C.jalDark, C.burnt, burn));
+      R.circle(x + r * 0.03, y + r * 0.03, r * 0.033, lerpC(C.jalDark, C.burnt, burn));
     }
   }
 
@@ -136,6 +155,17 @@ const Sprites = (function () {
     } else if (kind === "pepper") {
       R.rotQuad(x, y, s * 0.95, s * 0.28, -0.5, C.pepper);
       R.rotQuad(x, y, s * 0.7, s * 0.13, -0.5, C.pepperDk);
+    } else if (kind === "anchovy") {
+      R.rotQuad(x, y, s * 0.85, s * 0.24, -0.3, C.anchovy);
+      R.rotQuad(x + s * 0.06, y - s * 0.06, s * 0.60, s * 0.12, -0.3, C.anchoDark);
+    } else if (kind === "onion") {
+      R.circle(x, y, s * 0.44, C.onion);
+      R.circle(x, y, s * 0.27, [0.13, 0.09, 0.14, 1]);
+      R.circle(x, y, s * 0.14, C.onionDk);
+    } else if (kind === "jalapeno") {
+      R.circle(x, y, s * 0.40, C.jalapeno);
+      R.circle(x - s * 0.10, y - s * 0.08, s * 0.13, C.jalDark);
+      R.circle(x + s * 0.11, y + s * 0.10, s * 0.10, C.jalDark);
     }
   }
 

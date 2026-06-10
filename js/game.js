@@ -42,8 +42,8 @@
   const HI_KEY = "pizzeria-hiscore";
   const SND_KEY = "pizzeria-sound";
 
-  const BINS = ["sauce", "cheese", "pepperoni", "mushroom", "olive", "pepper"];
-  const EXTRAS = ["pepperoni", "mushroom", "olive", "pepper"];
+  const BINS = ["sauce", "cheese", "pepperoni", "mushroom", "olive", "pepper", "anchovy", "onion", "jalapeno"];
+  const EXTRAS = ["pepperoni", "mushroom", "olive", "pepper", "anchovy", "onion", "jalapeno"];
 
   // Bake progress p = time / BAKE_TIME. Zones along the bake bar:
   const BAKE_TIME = 4.0;
@@ -61,6 +61,10 @@
   const VIP_DAY = 3;       // VIPs start showing up on this day
   const VIP_CHANCE = 0.18;
   const VIP_DRAIN = 1.3;   // VIP patience drains this much faster
+  const RUSH_DAY = 5;
+  const RUSH_CHANCE = 0.15;
+  const RUSH_DRAIN = 2.0;  // rush customers lose patience twice as fast
+  const RUSH_PAY = 1.5;    // but pay 1.5× base
   const DAY_BONUS = 100;
   const HEARTS_MAX = 4;
 
@@ -125,7 +129,7 @@
       patience: Math.max(30 - (d - 1) * 2, 14),         // seconds at the counter
       spawnGap: Math.max(5 - (d - 1) * 0.4, 2.2),
       extraMin: Math.max(0, Math.min(Math.floor((d - 1) / 3), 2)),
-      extraMax: Math.min(1 + Math.floor((d - 1) / 2), 4),
+      extraMax: Math.min(1 + Math.floor((d - 1) / 2), 5),
     };
   }
 
@@ -140,24 +144,21 @@
     const counterY = custY + 42;  // top edge of the counter band
 
     const narrow = W < 620;
-    const binH = narrow ? 60 : 72;
-    const rows = narrow ? 2 : 1;
-    const perRow = narrow ? 4 : 7;
-    const binAreaH = rows * (binH + 26) + 10;
+    const binH = narrow ? 54 : 64;
+    const binAreaH = 2 * (binH + 22) + 10;
     const binTop = H - binAreaH - 10;
 
-    const cellW = Math.min((W - 20) / perRow - 8, 116);
+    const cellW = Math.min((W - 20) / 5 - 8, 108);
     const bins = [];
     const items = BINS.concat(["trash"]);
     for (let i = 0; i < items.length; i++) {
-      const row = narrow ? (i < 4 ? 0 : 1) : 0;
-      const idx = narrow ? (i < 4 ? i : i - 4) : i;
-      const count = narrow ? (row === 0 ? 4 : 3) : 7;
-      const rowW = count * (cellW + 8) - 8;
+      const row = i < 5 ? 0 : 1;
+      const idx = i < 5 ? i : i - 5;
+      const rowW = 5 * (cellW + 8) - 8;
       bins.push({
         type: items[i],
         x: W / 2 - rowW / 2 + idx * (cellW + 8),
-        y: binTop + row * (binH + 26),
+        y: binTop + row * (binH + 22),
         w: cellW,
         h: binH,
       });
@@ -251,6 +252,7 @@
     const extras = makeOrder();
     nextPal = (nextPal + 1 + Math.floor(Math.random() * 2)) % Sprites.paletteCount;
     const vip = day >= VIP_DAY && Math.random() < VIP_CHANCE;
+    const rush = !vip && day >= RUSH_DAY && Math.random() < RUSH_CHANCE;
     customers.push({
       slot,
       x: -60,
@@ -262,6 +264,7 @@
       pal: nextPal,
       flash: 0,
       vip,
+      rush,
     });
     if (vip && GameAudio.vip) GameAudio.vip();
   }
@@ -381,7 +384,8 @@
     const tip = Math.round(TIP_MAX * c.patience * mult);
     const bonus = fl.q === "perfect" ? PERFECT_BONUS : 0;
     if (bonus) dayPerfects++;
-    let gain = BASE_PAY + tip + bonus;
+    const basePay = c.rush ? Math.round(BASE_PAY * RUSH_PAY) : BASE_PAY;
+    let gain = basePay + tip + bonus;
     if (c.vip) gain *= 2;
     coins += gain;
     if (coins > hiscore) hiscore = coins;
@@ -402,6 +406,8 @@
     }
     if (c.vip) {
       addFloat(x, fy, "VIP X2", [0.95, 0.78, 0.22, 1], 3.5);
+    } else if (c.rush) {
+      addFloat(x, fy, "RUSH PAY", [1, 0.45, 0.2, 1], 3.5);
     }
     c.state = "happy";
     c.t = 0;
@@ -683,7 +689,7 @@
       } else if (c.state === "wait") {
         c.x = sx;
         if (state === ST.PLAY) {
-          c.patience -= (dt * (c.vip ? VIP_DRAIN : 1)) / DP.patience;
+          c.patience -= dt * (c.vip ? VIP_DRAIN : c.rush ? RUSH_DRAIN : 1) / DP.patience;
           if (c.patience <= 0) {
             c.patience = 0;
             loseCustomer(c);
@@ -768,6 +774,8 @@
     Sprites.roundedPanel(x - 2, y - 2, w + 4, h + 4, 5, [0, 0, 0, 0.45]);
     if (c.vip) {
       Sprites.roundedPanel(x - 3, y - 3, w + 6, h + 6, 5, [0.95, 0.78, 0.22, 0.95]);
+    } else if (c.rush) {
+      Sprites.roundedPanel(x - 3, y - 3, w + 6, h + 6, 5, [1.0, 0.35, 0.15, 0.95]);
     }
     Sprites.roundedPanel(x, y, w, h, 4, TICKET_BG);
     Sprites.pizza(c.x, y + 26, 20, c.order, 1, c.slot * 1.3);
@@ -897,7 +905,7 @@
     const cy = L.H * 0.8;
     Renderer.circle(L.W / 2, cy, r * 1.35, [1, 0.5, 0.15, 0.07], 32);
     Sprites.pizza(L.W / 2, cy, r,
-      new Set(["sauce", "cheese", "pepperoni", "mushroom", "olive", "pepper"]),
+      new Set(["sauce", "cheese", "pepperoni", "mushroom", "olive", "pepper", "anchovy", "onion", "jalapeno"]),
       1, worldT * 0.35);
   }
 
