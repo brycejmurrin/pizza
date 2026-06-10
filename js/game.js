@@ -138,36 +138,47 @@
   function layout() {
     const W = Renderer.width;
     const H = Renderer.height;
-    const top = 64;
 
-    const custY = top + 86;       // customer body center
-    const counterY = custY + 42;  // top edge of the counter band
+    // Landscape: wide + short (phone on its side). Portrait: tall + narrow.
+    const landscape = W > H * 1.15;
+    const narrow = !landscape && W < 620;
 
-    const narrow = W < 620;
-    const binH = narrow ? 54 : 64;
-    const binAreaH = 2 * (binH + 22) + 10;
-    const binTop = H - binAreaH - 10;
+    // Vertical anchors — scaled down in landscape to reclaim height
+    const top = landscape ? 40 : 64;
+    const custY = landscape ? Math.max(130, top + 90) : top + 86;
+    const counterY = custY + (landscape ? 28 : 42);
 
-    const cellW = Math.min((W - 20) / 5 - 8, 108);
+    // Bin grid: 1 wide row in landscape, 2 rows in portrait
+    const binH = landscape ? Math.max(38, Math.floor(H * 0.11)) : (narrow ? 54 : 64);
+    const binGap = landscape ? 14 : 22;
+    const binRows = landscape ? 1 : 2;
+    const binPerRow = landscape ? BINS.length + 1 : 5; // +1 for trash
+    const binBottom = landscape ? 14 : 10;
+    const binAreaH = binRows * (binH + binGap) + 6;
+    const binTop = H - binAreaH - binBottom;
+
+    const cellGap = landscape ? 6 : 8;
+    const cellW = Math.min((W - 16) / binPerRow - cellGap, 108);
     const bins = [];
     const items = BINS.concat(["trash"]);
     for (let i = 0; i < items.length; i++) {
-      const row = i < 5 ? 0 : 1;
-      const idx = i < 5 ? i : i - 5;
-      const rowW = 5 * (cellW + 8) - 8;
+      const row = landscape ? 0 : (i < 5 ? 0 : 1);
+      const idx = landscape ? i : (i < 5 ? i : i - 5);
+      const count = landscape ? items.length : 5;
+      const rowW = count * (cellW + cellGap) - cellGap;
       bins.push({
         type: items[i],
-        x: W / 2 - rowW / 2 + idx * (cellW + 8),
-        y: binTop + row * (binH + 22),
+        x: W / 2 - rowW / 2 + idx * (cellW + cellGap),
+        y: binTop + row * (binH + binGap),
         w: cellW,
         h: binH,
       });
     }
 
-    const midTop = counterY + 36;
+    const midTop = counterY + (landscape ? 16 : 36);
     const midH = binTop - midTop;
-    const stationY = midTop + midH * 0.58;
-    const pr = clamp(Math.min(W * 0.105, midH * 0.21), 26, 54);
+    const stationY = midTop + midH * (landscape ? 0.52 : 0.58);
+    const pr = clamp(Math.min(W * (landscape ? 0.07 : 0.105), midH * 0.22), landscape ? 20 : 26, landscape ? 42 : 54);
 
     const ovenW = pr * 2.6;
     const ovenH = pr * 2.3;
@@ -181,7 +192,7 @@
 
     return {
       W, H, top, custY, counterY, bins, binTop,
-      stationY, pr,
+      stationY, pr, landscape,
       prepX: W * 0.18, ovenX: W * 0.5, readyX: W * 0.82,
       ovenW, ovenH,
       ovenRect: { x: W * 0.5 - ovenW / 2, y: stationY - ovenH * 0.62, w: ovenW, h: ovenH },
@@ -770,7 +781,7 @@
     const w = 58;
     const h = 66;
     const x = c.x - w / 2;
-    const y = L.custY - 118;
+    const y = Math.max(6, L.custY - 118); // clamp so ticket never clips off the top
     Sprites.roundedPanel(x - 2, y - 2, w + 4, h + 4, 5, [0, 0, 0, 0.45]);
     if (c.vip) {
       Sprites.roundedPanel(x - 3, y - 3, w + 6, h + 6, 5, [0.95, 0.78, 0.22, 0.95]);
@@ -850,14 +861,15 @@
       Sprites.roundedPanel(b.x, b.y, b.w, b.h, 6, active ? [0.22, 0.13, 0.10, 1] : [0.13, 0.09, 0.14, 1]);
       const cx = b.x + b.w / 2;
       const cy = b.y + b.h / 2;
+      const lblSize = L.landscape ? 1.5 : 2;
       if (b.type === "trash") {
         Sprites.trashCan(cx, cy, b.h * 0.7);
-        Sprites.text(cx, b.y + b.h + 6, 2, "TRASH", LABEL, "center");
+        Sprites.text(cx, b.y + b.h + 5, lblSize, "TRASH", LABEL, "center");
       } else {
         const s = b.h * 0.52;
         Sprites.toppingIcon(b.type, cx - s * 0.3, cy + s * 0.12, s * 0.8);
         Sprites.toppingIcon(b.type, cx + s * 0.34, cy - s * 0.1, s * 0.9);
-        Sprites.text(cx, b.y + b.h + 6, 2, b.type, LABEL, "center");
+        Sprites.text(cx, b.y + b.h + 5, lblSize, b.type, LABEL, "center");
       }
     }
   }
