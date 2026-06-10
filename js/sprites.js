@@ -150,12 +150,17 @@ const Sprites = (function () {
     { body: [0.95, 0.66, 0.25, 1], skin: [0.80, 0.60, 0.45, 1], hair: [0.42, 0.26, 0.50, 1], hat: 0 },
     { body: [0.60, 0.50, 0.95, 1], skin: [1.00, 0.80, 0.62, 1], hair: [0.76, 0.30, 0.20, 1], hat: 1 },
     { body: [0.30, 0.78, 0.78, 1], skin: [0.70, 0.50, 0.35, 1], hair: [0.55, 0.55, 0.58, 1], hat: 2 },
+    { body: [0.78, 0.32, 0.30, 1], skin: [0.92, 0.72, 0.55, 1], hair: [0.20, 0.32, 0.24, 1], hat: 1 },
+    { body: [0.46, 0.42, 0.62, 1], skin: [0.62, 0.44, 0.30, 1], hair: [0.88, 0.84, 0.78, 1], hat: 0 },
   ];
 
   const DARK = [0.08, 0.07, 0.10, 1];
+  const GOLD = [0.95, 0.78, 0.22, 1];
+  const CREAM = [0.97, 0.92, 0.78, 1];
 
   // mood: 0 happy, 1 neutral, 2 worried, 3 angry. flash > 0 tints red.
-  function customer(cx, cy, t, palIdx, mood, flash) {
+  // vip (optional): gold outfit, crown, and sparkles for big spenders.
+  function customer(cx, cy, t, palIdx, mood, flash, vip) {
     const pal = PALETTES[palIdx % PALETTES.length];
     const bob = Math.sin(t * 3 + palIdx) * 2;
     const jit = mood >= 3 ? Math.sin(t * 40) * 1.6 : 0;
@@ -163,12 +168,16 @@ const Sprites = (function () {
     const y = cy + bob;
 
     // body
-    let body = pal.body;
+    let body = vip ? GOLD : pal.body;
     if (flash > 0) body = lerpC(body, [1, 0.2, 0.2, 1], Math.min(1, flash));
     R.circle(x - 18, y + 16, 9, body);
     R.circle(x + 18, y + 16, 9, body);
     R.quad(x - 18, y + 7, 36, 22, body);
     R.quad(x - 23, y + 16, 46, 13, body);
+    if (vip) {
+      // cream sash across the chest
+      R.rotQuad(x, y + 17, 38, 5, -0.22, CREAM);
+    }
 
     // head
     const hy = y - 12;
@@ -186,10 +195,27 @@ const Sprites = (function () {
       R.quad(x - 13, hy - 6, 26, 4, pal.hair);
     }
 
-    // eyes
+    // VIP crown and twinkles, drawn over the hair
+    if (vip) {
+      const cyn = hy - 17;
+      R.quad(x - 8, cyn - 2, 16, 4, GOLD);
+      R.tri(x - 8, cyn - 2, x - 5.3, cyn - 2, x - 6.6, cyn - 8, GOLD);
+      R.tri(x - 1.3, cyn - 2, x + 1.3, cyn - 2, x, cyn - 9, GOLD);
+      R.tri(x + 5.3, cyn - 2, x + 8, cyn - 2, x + 6.6, cyn - 8, GOLD);
+      sparkle(x - 24, hy - 14, 5, t * 1.3 + palIdx);
+      sparkle(x + 23, hy - 8, 4, t * 1.3 + palIdx + 2.1);
+    }
+
+    // eyes; blink shut ~0.15s out of every ~3s, staggered per palette
     const ey = hy - 1;
-    R.quad(x - 8, ey, 3.4, mood >= 2 ? 3 : 4.4, DARK);
-    R.quad(x + 4.6, ey, 3.4, mood >= 2 ? 3 : 4.4, DARK);
+    const blink = ((t + palIdx * 0.83) % 3.1) < 0.15;
+    if (blink) {
+      R.quad(x - 8.6, ey + 1.6, 4.6, 1.4, DARK);
+      R.quad(x + 4, ey + 1.6, 4.6, 1.4, DARK);
+    } else {
+      R.quad(x - 8, ey, 3.4, mood >= 2 ? 3 : 4.4, DARK);
+      R.quad(x + 4.6, ey, 3.4, mood >= 2 ? 3 : 4.4, DARK);
+    }
     if (mood >= 3) {
       R.rotQuad(x - 6.5, ey - 3.4, 8, 2, 0.45, DARK);
       R.rotQuad(x + 6.5, ey - 3.4, 8, 2, -0.45, DARK);
@@ -245,6 +271,19 @@ const Sprites = (function () {
       R.quad(mx - mw / 2 + 4, mouthY, mw - 8, h * 0.2, [1.0, 0.45, 0.10, 0.5 * fl]);
       R.arc(mx, mouthY + h * 0.05, 0, mw / 4, Math.PI, Math.PI * 2, [1.0, 0.8, 0.25, 0.5 * fl], 10);
     }
+    // licking flames once the fire is properly going
+    if (glow > 0.5) {
+      const fy = mouthY + h * 0.16; // flame baseline inside the mouth
+      for (let i = 0; i < 3; i++) {
+        const fx = mx + (i - 1) * mw * 0.22;
+        // each tongue flickers on its own phase
+        const fh = h * (0.16 + 0.05 * Math.sin(t * 11 + i * 2.4)) * glow;
+        const sway = Math.sin(t * 7 + i * 1.7) * mw * 0.02;
+        const fw = mw * 0.10;
+        R.tri(fx - fw, fy, fx + fw, fy, fx + sway, fy - fh, [1.0, 0.45, 0.10, 0.85]);
+        R.tri(fx - fw * 0.5, fy, fx + fw * 0.5, fy, fx + sway * 0.6, fy - fh * 0.6, [1.0, 0.85, 0.30, 0.9]);
+      }
+    }
     // chimney
     R.quad(mx - w * 0.09, y - 12, w * 0.18, 14, trim);
   }
@@ -274,6 +313,18 @@ const Sprites = (function () {
     R.circle(cx - s * 0.3, cy - s * 0.2, s * 0.34, color, 10);
     R.circle(cx + s * 0.3, cy - s * 0.2, s * 0.34, color, 10);
     R.tri(cx - s * 0.6, cy - s * 0.04, cx + s * 0.6, cy - s * 0.04, cx, cy + s * 0.62, color);
+  }
+
+  // 4-point twinkle: two thin crossed bars, pulsing scale and alpha with t.
+  // s is the max half-length of a point; reusable for VIPs and celebrations.
+  function sparkle(x, y, s, t) {
+    const pulse = 0.5 + 0.5 * Math.sin(t * 5);
+    if (pulse < 0.08) return; // fully winked out
+    const len = s * (0.6 + 0.8 * pulse);
+    const c = [1, 0.95, 0.7, 0.35 + 0.6 * pulse];
+    R.rotQuad(x, y, len * 2, s * 0.3, 0, c);
+    R.rotQuad(x, y, len * 2, s * 0.3, Math.PI / 2, c);
+    R.circle(x, y, s * 0.22, [1, 1, 0.9, 0.5 + 0.5 * pulse], 8);
   }
 
   // ---------------------------------------------------------------------
@@ -319,6 +370,43 @@ const Sprites = (function () {
     return width;
   }
 
+  // ---------------------------------------------------------------------
+  // Neon "PIZZA" sign
+  // ---------------------------------------------------------------------
+
+  const NEON_WORD = "PIZZA";
+  const NEON_PINK = [1.0, 0.35, 0.55, 1];
+
+  // Glowing sign centered on (cx, cy). s = font pixel cell size.
+  // One letter sputters out briefly now and then, keyed off t.
+  function neonSign(cx, cy, s, t) {
+    const adv = 4 * s;
+    const width = NEON_WORD.length * adv - s;
+    const left = cx - width / 2;
+    const top = cy - 2.5 * s;
+
+    // soft warm halo behind the lettering
+    R.circle(cx, cy, width * 0.75, [1.0, 0.45, 0.35, 0.06], 20);
+    R.circle(cx, cy, width * 0.5, [1.0, 0.40, 0.40, 0.09], 18);
+    R.quad(left - 2 * s, top - 1.5 * s, width + 4 * s, 8 * s, [1.0, 0.35, 0.45, 0.08]);
+
+    // every ~4s one letter sputters for ~0.4s, cycling through the word
+    const phase = t % 4;
+    const dimIdx = Math.floor(t / 4) % NEON_WORD.length;
+    const sputter = phase < 0.4;
+
+    for (let i = 0; i < NEON_WORD.length; i++) {
+      let a = 1;
+      if (sputter && i === dimIdx) {
+        a = 0.25 + 0.25 * Math.sin(t * 60); // buzzing half-dead tube
+      }
+      const lx = left + i * adv;
+      // dim halo per letter, then the bright core
+      text(lx - s * 0.25, top - s * 0.25, s * 1.16, NEON_WORD[i], fade(NEON_PINK, 0.22 * a), "left");
+      text(lx, top, s, NEON_WORD[i], fade([1.0, 0.75, 0.8, 1], a), "left");
+    }
+  }
+
   return {
     pizza,
     toppingIcon,
@@ -330,6 +418,8 @@ const Sprites = (function () {
     heart,
     roundedPanel,
     text,
+    sparkle,
+    neonSign,
     fade,
     lerpC,
     paletteCount: PALETTES.length,

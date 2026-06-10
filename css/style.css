@@ -77,7 +77,8 @@ html, body {
   gap: 14px;
   pointer-events: none;
   text-align: center;
-  padding: 0 24px;
+  /* bottom padding lifts the text block above the attract-mode pizza */
+  padding: 0 24px 22vh;
   transition: opacity 0.25s ease;
 }
 

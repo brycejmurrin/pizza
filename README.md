@@ -23,8 +23,14 @@ and serve the right customer before their patience bar runs out.
 - A customer who walks out costs a heart; lose all hearts and you're
   closed. Clearing a day restores one heart (max 4) and pays a 100-coin
   bonus.
+- **Combos:** consecutive successful serves multiply your tips (up to
+  x2 at a 6 streak). A walkout breaks the streak.
+- **VIPs:** from day 3, gold-clad customers with crowns pay double —
+  but their patience drains 30% faster.
 - Days get busier: more simultaneous customers, more extras per order,
   thinner patience. High score is saved locally.
+- Looping chiptune tarantella plays during shifts (it speeds up as the
+  days go on); toggle sound from the pause menu.
 
 ## Running it
 
@@ -36,7 +42,15 @@ python3 -m http.server 8000
 ```
 
 Opening `index.html` directly from disk also works — there are no asset
-fetches. Deploys to any static host.
+fetches. Deploys to any static host (this repo auto-deploys to GitHub
+Pages via the included workflow).
+
+A headless smoke test (stubbed DOM + WebGL) plays through a full order
+pipeline:
+
+```sh
+node test/smoke.js
+```
 
 ## Project structure
 

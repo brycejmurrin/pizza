@@ -52,6 +52,11 @@
   const BASE_PAY = 50;
   const TIP_MAX = 50;
   const PERFECT_BONUS = 25;
+  const COMBO_STEP = 0.2;  // extra tip per consecutive serve beyond the first
+  const COMBO_CAP = 5;     // caps the tip multiplier at x2
+  const VIP_DAY = 3;       // VIPs start showing up on this day
+  const VIP_CHANCE = 0.18;
+  const VIP_DRAIN = 1.3;   // VIP patience drains this much faster
   const DAY_BONUS = 100;
   const HEARTS_MAX = 4;
 
@@ -73,6 +78,10 @@
   let hiscore = Number(localStorage.getItem(HI_KEY) || 0);
   let hearts = 3;
   let served = 0;
+  let streak = 0;       // consecutive successful serves; walkouts reset it
+  let dayPerfects = 0;  // per-day stats for the CLEAR screen
+  let dayLost = 0;
+  let dayBestStreak = 0;
   let DP = dayParams(1);
 
   // --- Stations ---------------------------------------------------------------
@@ -236,6 +245,7 @@
     if (slot < 0) return;
     const extras = makeOrder();
     nextPal = (nextPal + 1 + Math.floor(Math.random() * 2)) % Sprites.paletteCount;
+    const vip = day >= VIP_DAY && Math.random() < VIP_CHANCE;
     customers.push({
       slot,
       x: -60,
@@ -246,7 +256,9 @@
       state: "in",
       pal: nextPal,
       flash: 0,
+      vip,
     });
+    if (vip && GameAudio.vip) GameAudio.vip();
   }
 
   function mood(c) {
@@ -358,18 +370,33 @@
   function completeServe(fl) {
     const c = fl.cust;
     const L = layout();
-    const tip = Math.round(TIP_MAX * c.patience);
+    streak++;
+    if (streak > dayBestStreak) dayBestStreak = streak;
+    const mult = 1 + COMBO_STEP * Math.min(streak - 1, COMBO_CAP);
+    const tip = Math.round(TIP_MAX * c.patience * mult);
     const bonus = fl.q === "perfect" ? PERFECT_BONUS : 0;
-    const gain = BASE_PAY + tip + bonus;
+    if (bonus) dayPerfects++;
+    let gain = BASE_PAY + tip + bonus;
+    if (c.vip) gain *= 2;
     coins += gain;
     if (coins > hiscore) hiscore = coins;
     updateHud();
     GameAudio.cash();
     const x = L.slots[c.slot];
     addFloat(x, L.custY - 70, "+" + gain, [1, 0.85, 0.3, 1], 4);
+    let fy = L.custY - 96;
     if (bonus) {
       GameAudio.ding();
-      addFloat(x, L.custY - 96, "PERFECT!", [0.4, 1, 0.6, 1], 3.5);
+      addFloat(x, fy, "PERFECT!", [0.4, 1, 0.6, 1], 3.5);
+      fy -= 20;
+    }
+    if (streak >= 2) {
+      addFloat(x, fy, "COMBO X" + streak, [1, 0.6, 0.2, 1], 3.5);
+      if (GameAudio.combo) GameAudio.combo(streak);
+      fy -= 20;
+    }
+    if (c.vip) {
+      addFloat(x, fy, "VIP X2", [0.95, 0.78, 0.22, 1], 3.5);
     }
     c.state = "happy";
     c.t = 0;
@@ -383,6 +410,8 @@
     GameAudio.angry();
     shakeT = 0.3;
     hearts--;
+    streak = 0;
+    dayLost++;
     const L = layout();
     addFloat(L.slots[c.slot], L.custY - 70, "-1", [1, 0.3, 0.4, 1], 4);
     if (hearts <= 0) gameOver();
@@ -393,6 +422,7 @@
     coins = 0;
     hearts = 3;
     day = 1;
+    streak = 0;
     startDay();
     if (!pauseBtnShown) {
       pauseBtn.hidden = false;
@@ -411,10 +441,14 @@
     oven = null;
     readyP = null;
     spawnT = 0.6;
+    dayPerfects = 0;
+    dayLost = 0;
+    dayBestStreak = 0;
     state = ST.INTRO;
     stateT = 0;
     updateHud();
     showOverlay("DAY " + day, "Serve " + DP.quota + " customers", "");
+    if (GameAudio.musicStop) GameAudio.musicStop();
     GameAudio.dayIntro();
   }
 
@@ -422,6 +456,7 @@
     state = ST.PLAY;
     stateT = 0;
     hideOverlay();
+    if (GameAudio.musicStart) GameAudio.musicStart(day);
   }
 
   function dayClear() {
@@ -430,7 +465,10 @@
     coins += DAY_BONUS;
     if (coins > hiscore) hiscore = coins;
     const gained = hearts < HEARTS_MAX;
-    if (gained) hearts++;
+    if (gained) {
+      hearts++;
+      if (GameAudio.heartGain) GameAudio.heartGain();
+    }
     updateHud();
     for (const c of customers) {
       if (c.state === "wait" || c.state === "in") {
@@ -451,7 +489,9 @@
     }
     showOverlay(
       "DAY " + day + " CLEAR",
-      "+" + DAY_BONUS + " coins" + (gained ? "  ·  +1 heart" : ""),
+      "+" + DAY_BONUS + " coins" + (gained ? "  ·  +1 heart" : "") +
+        "\n" + dayPerfects + " perfect  ·  " + dayLost + " lost  ·  best combo x" +
+        dayBestStreak,
       ""
     );
     GameAudio.dayClear();
@@ -460,6 +500,7 @@
   function gameOver() {
     state = ST.OVER;
     stateT = 0;
+    if (GameAudio.musicStop) GameAudio.musicStop();
     if (coins > Number(localStorage.getItem(HI_KEY) || 0)) {
       localStorage.setItem(HI_KEY, String(hiscore));
     }
@@ -471,6 +512,7 @@
   function toAttract() {
     state = ST.ATTRACT;
     stateT = 0;
+    if (GameAudio.musicStop) GameAudio.musicStop();
     customers = [];
     flights = [];
     floats = [];
@@ -495,11 +537,13 @@
     paused = true;
     pauseMenu.hidden = false;
     pmSound.textContent = soundOn ? "SOUND: ON" : "SOUND: OFF";
+    if (GameAudio.musicStop) GameAudio.musicStop();
   }
 
   function closePause() {
     paused = false;
     pauseMenu.hidden = true;
+    if (state === ST.PLAY && GameAudio.musicStart) GameAudio.musicStart(day);
   }
 
   pauseBtn.addEventListener("click", () => {
@@ -613,7 +657,7 @@
       } else if (c.state === "wait") {
         c.x = sx;
         if (state === ST.PLAY) {
-          c.patience -= dt / DP.patience;
+          c.patience -= (dt * (c.vip ? VIP_DRAIN : 1)) / DP.patience;
           if (c.patience <= 0) {
             c.patience = 0;
             loseCustomer(c);
@@ -680,7 +724,7 @@
 
   function drawCustomers(L) {
     for (const c of customers) {
-      Sprites.customer(c.x, L.custY, worldT, c.pal, mood(c), c.flash);
+      Sprites.customer(c.x, L.custY, worldT, c.pal, mood(c), c.flash, c.vip);
     }
     drawCounter(L);
     // tickets drawn over the counter so they never collide with heads
@@ -696,6 +740,9 @@
     const x = c.x - w / 2;
     const y = L.custY - 118;
     Sprites.roundedPanel(x - 2, y - 2, w + 4, h + 4, 5, [0, 0, 0, 0.45]);
+    if (c.vip) {
+      Sprites.roundedPanel(x - 3, y - 3, w + 6, h + 6, 5, [0.95, 0.78, 0.22, 0.95]);
+    }
     Sprites.roundedPanel(x, y, w, h, 4, TICKET_BG);
     Sprites.pizza(c.x, y + 26, 20, c.order, 1, c.slot * 1.3);
     // patience bar
@@ -815,9 +862,13 @@
   }
 
   function drawAttract(L) {
-    // slowly spinning supreme pizza
-    const r = Math.min(L.W, L.H) * 0.21;
-    const cy = L.H * 0.62;
+    // neon shop sign on the wall, above the title overlay
+    if (Sprites.neonSign) {
+      Sprites.neonSign(L.W / 2, L.custY - 20, clamp(L.W * 0.028, 7, 13), worldT);
+    }
+    // slowly spinning supreme pizza, kept below the overlay text
+    const r = Math.min(L.W * 0.16, L.H * 0.13);
+    const cy = L.H * 0.8;
     Renderer.circle(L.W / 2, cy, r * 1.35, [1, 0.5, 0.15, 0.07], 32);
     Sprites.pizza(L.W / 2, cy, r,
       new Set(["sauce", "cheese", "pepperoni", "mushroom", "olive", "pepper"]),

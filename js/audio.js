@@ -323,6 +323,176 @@ const GameAudio = (function () {
     tone({ type: "square", f0: 990, f1: 1320, dur: 0.12, t: 0.08, gain: 0.3 });
   }
 
+  function combo(n) {
+    // quick rising arpeggio that climbs with the combo count (cap at 8)
+    const step = Math.min(8, Math.max(1, Math.floor(n || 1)));
+    const root = 71 + step; // up a semitone per combo level from B4
+    tone({ type: "square", f0: mf(root), dur: 0.06, gain: 0.22 });
+    tone({ type: "square", f0: mf(root + 4), dur: 0.06, t: 0.05, gain: 0.22 });
+    tone({ type: "square", f0: mf(root + 7), dur: 0.09, t: 0.1, gain: 0.24 });
+  }
+
+  function vip() {
+    // brief regal fanfare: G major lifting into C major (~0.5s)
+    const lo = [67, 71, 74]; // G4 B4 D5
+    const hi = [72, 76, 79, 84]; // C5 E5 G5 C6
+    for (let i = 0; i < lo.length; i++) {
+      tone({ type: "sawtooth", f0: mf(lo[i]), dur: 0.18, gain: 0.1 });
+    }
+    for (let i = 0; i < hi.length; i++) {
+      tone({ type: "sawtooth", f0: mf(hi[i]), dur: 0.3, t: 0.2, gain: 0.09 });
+    }
+  }
+
+  function heartGain() {
+    // warm two-note chime: E5 then B5 on soft triangles + sine shimmer
+    tone({ type: "triangle", f0: mf(76), dur: 0.25, gain: 0.3 });
+    tone({ type: "triangle", f0: mf(83), dur: 0.35, t: 0.12, gain: 0.25 });
+    tone({ type: "sine", f0: mf(88), dur: 0.3, t: 0.12, gain: 0.08 });
+  }
+
+  // ---------------------------------------------------------------------
+  // Background music (looping tarantella chiptune, lookahead-scheduled)
+  // ---------------------------------------------------------------------
+
+  const MUSIC_GAIN = 0.5; // music bus level into master
+  const MUSIC_BASE_EIGHTH = 60 / 152; // 152 BPM eighth-note feel
+  const MUSIC_TICK_MS = 200; // scheduler poll interval
+
+  let musicGain = null; // dedicated bus into master (so mute still works)
+  let musicTimer = null; // setInterval id for the lookahead scheduler
+  let musicDay = -1; // day the current loop was started for
+  let musicNextBar = 0; // ctx time of the next unscheduled bar
+  let musicBarIndex = 0; // running bar counter (pattern position)
+  let musicEighth = 0; // current eighth-note duration in seconds
+
+  // Tarantella in A: four bars of 6/8 eighth-note melody over a
+  // dotted-quarter bass. Values are midi note numbers, 0 = rest.
+  const MUSIC_MELODY = [
+    [69, 73, 76, 81, 76, 73], // A major, up and back
+    [69, 74, 78, 81, 78, 74], // D major (IV) bounce
+    [69, 73, 76, 81, 76, 73], // A major again
+    [68, 71, 76, 80, 76, 71], // E major (V) turnaround
+  ];
+  const MUSIC_BASS = [
+    [45, 52], // A2 E3
+    [50, 45], // D3 A2
+    [45, 52], // A2 E3
+    [40, 52], // E2 E3
+  ];
+
+  // Like tone() but with an absolute start time, routed to the music bus.
+  function musicTone(when, type, freq, dur, gain) {
+    const osc = ctx.createOscillator();
+    osc.type = type;
+    osc.frequency.setValueAtTime(safeFreq(freq), when);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, when);
+    g.gain.linearRampToValueAtTime(gain, when + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.001, when + dur);
+    osc.connect(g);
+    g.connect(musicGain);
+    osc.start(when);
+    osc.stop(when + dur + 0.02);
+  }
+
+  // Tiny hi-hat tick: a short burst of highpassed noise on the music bus.
+  function musicHat(when, gain) {
+    const src = ctx.createBufferSource();
+    src.buffer = noiseBuffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "highpass";
+    filter.frequency.setValueAtTime(7000, when);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(gain, when);
+    g.gain.exponentialRampToValueAtTime(0.001, when + 0.03);
+    src.connect(filter);
+    filter.connect(g);
+    g.connect(musicGain);
+    src.start(when);
+    src.stop(when + 0.05);
+  }
+
+  // Schedule one full 6/8 bar (melody + bass + hats) starting at t0.
+  function musicScheduleBar(t0) {
+    const e = musicEighth;
+    const mel = MUSIC_MELODY[musicBarIndex % MUSIC_MELODY.length];
+    const bass = MUSIC_BASS[musicBarIndex % MUSIC_BASS.length];
+    for (let i = 0; i < 6; i++) {
+      if (mel[i] > 0) {
+        musicTone(t0 + i * e, "square", mf(mel[i]), e * 0.85, 0.07);
+      }
+      // hat on every eighth, slightly accented on the two big beats
+      musicHat(t0 + i * e, i % 3 === 0 ? 0.025 : 0.015);
+    }
+    musicTone(t0, "triangle", mf(bass[0]), e * 2.6, 0.09);
+    musicTone(t0 + 3 * e, "triangle", mf(bass[1]), e * 2.6, 0.09);
+    musicBarIndex++;
+  }
+
+  // Lookahead scheduler: keep one to two bars queued past the playhead.
+  function musicTick() {
+    try {
+      if (!ready() || !musicGain) return;
+      const barDur = 6 * musicEighth;
+      while (musicNextBar < ctx.currentTime + barDur * 2) {
+        musicScheduleBar(musicNextBar);
+        musicNextBar += barDur;
+      }
+    } catch (e) {
+      /* never throw from audio */
+    }
+  }
+
+  function musicStart(day) {
+    try {
+      if (!ready()) return;
+      const d = Math.max(1, Math.floor(day || 1));
+      if (musicTimer != null && d === musicDay) return; // already playing
+      musicStop();
+      // tempo creeps up 2% per day after the first, capped at +20%
+      const speed = 1 + Math.min(0.2, (d - 1) * 0.02);
+      musicEighth = MUSIC_BASE_EIGHTH / speed;
+      musicDay = d;
+      musicBarIndex = 0;
+      musicGain = ctx.createGain();
+      musicGain.gain.setValueAtTime(MUSIC_GAIN, ctx.currentTime);
+      musicGain.connect(master);
+      musicNextBar = ctx.currentTime + 0.05;
+      musicTick(); // fill the queue now, then keep it topped up
+      musicTimer = setInterval(musicTick, MUSIC_TICK_MS);
+    } catch (e) {
+      musicDay = -1;
+    }
+  }
+
+  function musicStop() {
+    try {
+      if (musicTimer != null) {
+        clearInterval(musicTimer);
+        musicTimer = null;
+      }
+      musicDay = -1;
+      if (musicGain && ctx) {
+        const g = musicGain;
+        const t = ctx.currentTime;
+        g.gain.cancelScheduledValues(t);
+        g.gain.setValueAtTime(g.gain.value, t);
+        g.gain.linearRampToValueAtTime(0, t + 0.3); // quick fade out
+        setTimeout(function () {
+          try {
+            g.disconnect();
+          } catch (e) {
+            /* already gone */
+          }
+        }, 350);
+      }
+      musicGain = null;
+    } catch (e) {
+      /* never throw from audio */
+    }
+  }
+
   // ---------------------------------------------------------------------
   // Public API
   // ---------------------------------------------------------------------
@@ -351,6 +521,12 @@ const GameAudio = (function () {
     dayClear: guarded(dayClear),
     gameOver: guarded(gameOver),
     coin: guarded(coin),
+    combo: guarded(combo),
+    vip: guarded(vip),
+    heartGain: guarded(heartGain),
+    // musicStart/musicStop manage their own state and guard internally.
+    musicStart: musicStart,
+    musicStop: musicStop,
   };
 
   Object.defineProperty(api, "muted", {
