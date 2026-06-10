@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Neon Slice">
+<meta name="theme-color" content="#0e0810">
+<title>Neon Slice</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/icon-180.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud">
+  <div class="hud-col">
+    <div class="hud-label">COINS</div>
+    <div id="score" class="hud-value">0</div>
+  </div>
+  <div class="hud-col">
+    <div class="hud-label">HIGH SCORE</div>
+    <div id="hiscore" class="hud-value">0</div>
+  </div>
+  <div class="hud-col">
+    <div class="hud-label">&nbsp;</div>
+    <div id="stage" class="hud-value">&nbsp;</div>
+  </div>
+</div>
+
+<button id="pausebtn" hidden>&#10074;&#10074;</button>
+<div id="pausemenu" hidden>
+  <h2>PAUSED</h2>
+  <button id="pm-resume">RESUME</button>
+  <button id="pm-restart">RESTART</button>
+  <button id="pm-sound">SOUND: ON</button>
+  <button id="pm-quit">QUIT TO MENU</button>
+</div>
+
+<div id="overlay">
+  <h1 id="title">NEON&nbsp;SLICE</h1>
+  <p id="subtitle">Build the order &middot; bake it golden &middot; serve it hot</p>
+  <p id="prompt">TAP TO START</p>
+</div>
+
+<div id="nogl" hidden>
+  <p>Sorry &mdash; your browser does not support WebGL.</p>
+</div>
+
+<script src="js/renderer.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
