@@ -37,6 +37,7 @@
   <h2>PAUSED</h2>
   <button id="pm-resume">RESUME</button>
   <button id="pm-restart">RESTART</button>
+  <button id="pm-howto">HOW TO PLAY</button>
   <button id="pm-sound">SOUND: ON</button>
   <button id="pm-quit">QUIT TO MENU</button>
 </div>
@@ -45,6 +46,20 @@
   <h1 id="title">NEON&nbsp;SLICE</h1>
   <p id="subtitle">Build the order &middot; bake it golden &middot; serve it hot</p>
   <p id="prompt">TAP TO START</p>
+  <button id="howbtn" hidden>HOW TO PLAY</button>
+</div>
+
+<div id="howto" hidden>
+  <h2>HOW TO PLAY</h2>
+  <div class="how-body">
+    <p><span class="how-step">1 &middot; BUILD</span>Tap the bins. Every order needs sauce + cheese plus the extras shown on the customer's ticket.</p>
+    <p><span class="how-step">2 &middot; BAKE</span>Tap the oven to load it, tap again to pull. Pull in the gold zone of the bake bar for a perfect (+25). Raw and burnt pizzas get refused.</p>
+    <p><span class="how-step">3 &middot; SERVE</span>Tap the customer whose ticket matches. Wrong orders bounce &mdash; trash mistakes and start over.</p>
+    <p><span class="how-step">EARN</span>Fast serves tip up to +50. Back-to-back serves build a combo that multiplies tips up to x2. Gold VIPs pay double but won't wait around.</p>
+    <p><span class="how-step">SURVIVE</span>A walkout costs a heart &mdash; lose them all and you're closed. Clearing a day's quota restores one.</p>
+    <p class="how-keys">KEYBOARD: 1&ndash;6 toppings &middot; SPACE oven &middot; X trash &middot; Q W E R serve &middot; P pause</p>
+  </div>
+  <button id="how-close">BACK</button>
 </div>
 
 <div id="nogl" hidden>

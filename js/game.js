@@ -21,8 +21,12 @@
   const pauseMenu = document.getElementById("pausemenu");
   const pmResume = document.getElementById("pm-resume");
   const pmRestart = document.getElementById("pm-restart");
+  const pmHowto = document.getElementById("pm-howto");
   const pmSound = document.getElementById("pm-sound");
   const pmQuit = document.getElementById("pm-quit");
+  const howBtn = document.getElementById("howbtn");
+  const howtoEl = document.getElementById("howto");
+  const howClose = document.getElementById("how-close");
 
   let glOk = false;
   try {
@@ -212,6 +216,7 @@
     subtitleEl.textContent = subtitle || "";
     promptEl.textContent = prompt || "";
     promptEl.style.display = prompt ? "" : "none";
+    howBtn.hidden = true; // only the attract screen unhides it
     overlayEl.classList.remove("hidden");
   }
 
@@ -527,9 +532,30 @@
       "Build the order · bake it golden · serve it hot",
       "TAP TO START"
     );
+    howBtn.hidden = false;
     pauseBtn.hidden = true;
     pauseBtnShown = false;
   }
+
+  // --- Instructions panel -------------------------------------------------------
+  function openHowto() {
+    howtoEl.hidden = false;
+  }
+
+  function closeHowto() {
+    howtoEl.hidden = true;
+  }
+
+  howBtn.addEventListener("click", () => {
+    GameAudio.unlock();
+    GameAudio.tap();
+    openHowto();
+  });
+  pmHowto.addEventListener("click", openHowto);
+  howClose.addEventListener("click", () => {
+    GameAudio.tap();
+    closeHowto();
+  });
 
   // --- Pause ------------------------------------------------------------------
   function openPause() {
@@ -923,7 +949,7 @@
 
   function pointerDown(e) {
     GameAudio.unlock();
-    if (paused) return;
+    if (paused || !howtoEl.hidden) return;
     if (state === ST.ATTRACT) {
       GameAudio.coin();
       startGame();
@@ -952,6 +978,14 @@
   window.addEventListener("keydown", (e) => {
     if (e.repeat) return;
     const k = e.key.toLowerCase();
+    if (!howtoEl.hidden) {
+      // any dismiss-ish key closes the instructions panel
+      if (k === "escape" || k === "enter" || k === " " || k === "p") {
+        closeHowto();
+        e.preventDefault();
+      }
+      return;
+    }
     if (k === "escape" || k === "p") {
       if (state === ST.PLAY) {
         GameAudio.unlock();

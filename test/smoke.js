@@ -52,8 +52,13 @@ canvas.addEventListener = (type, fn) => { listeners.canvas[type] = fn; };
 const els = {};
 for (const id of ["score", "hiscore", "stage", "stage-label", "overlay", "title", "subtitle",
   "prompt", "pausebtn", "pausemenu", "pm-resume", "pm-restart", "pm-sound",
-  "pm-quit", "nogl"]) {
+  "pm-quit", "pm-howto", "howbtn", "howto", "how-close", "nogl"]) {
   els[id] = makeEl(id);
+}
+
+// elements that carry the `hidden` attribute in index.html start hidden
+for (const id of ["pausebtn", "pausemenu", "howto", "howbtn", "nogl"]) {
+  els[id].hidden = true;
 }
 
 let rafCbs = [];
@@ -108,6 +113,14 @@ function assert(cond, msg) {
 
 pump(0.2);
 assert(els.title.textContent.includes("NEON"), "attract screen shown");
+assert(els.howbtn.hidden === false, "HOW TO PLAY button shown on title");
+
+// instructions panel: opens, swallows keys, closes
+listeners["howbtn"].click();
+assert(els.howto.hidden === false, "how-to panel opens from title");
+key("Enter"); // dismisses the panel instead of starting the game
+assert(els.howto.hidden === true && els.title.textContent.includes("NEON"),
+  "Enter closes the panel without starting the game");
 
 key("Enter"); // start game
 assert(els.title.textContent === "DAY 1", "day 1 intro: " + els.title.textContent);

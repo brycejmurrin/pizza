@@ -13,6 +13,8 @@ and serve the right customer before their patience bar runs out.
 
 - **Mobile:** tap topping bins to build the pizza, tap the oven to bake /
   pull, then tap a customer to serve them.
+- **HOW TO PLAY** on the title screen (or in the pause menu) opens the
+  full in-game instructions.
 - **Desktop:** `1`–`6` toggle toppings, `Space`/`B` oven in/out, `X`/`T`
   trash, `Q W E R` serve customer 1–4, `P`/`Esc` pause.
 - Every order needs **sauce + cheese** plus the extras shown on the ticket.

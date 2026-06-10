@@ -121,8 +121,108 @@ html, body {
 }
 
 #pausebtn[hidden],
-#pausemenu[hidden] {
+#pausemenu[hidden],
+#howbtn[hidden],
+#howto[hidden] {
   display: none;
+}
+
+#howbtn {
+  margin-top: 10px;
+  pointer-events: auto;
+  min-width: 200px;
+  min-height: 46px;
+  background: rgba(30, 14, 10, 0.7);
+  border: 1px solid rgba(255, 178, 77, 0.6);
+  border-radius: 8px;
+  color: #ffdfb0;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#howbtn:active {
+  transform: scale(0.96);
+}
+
+#howto {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(14, 8, 16, 0.94);
+  z-index: 7;
+  padding: calc(20px + env(safe-area-inset-top)) 24px calc(20px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  touch-action: pan-y;
+}
+
+#howto h2 {
+  color: #ffb24d;
+  letter-spacing: 5px;
+  font-size: 26px;
+  font-weight: 800;
+  text-shadow: 0 0 18px rgba(255, 178, 77, 0.8);
+}
+
+.how-body {
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.how-body p {
+  color: #ffdfb0;
+  font-size: 13px;
+  line-height: 1.5;
+  letter-spacing: 0.5px;
+}
+
+.how-step {
+  display: block;
+  color: #ffb24d;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 2px;
+  margin-bottom: 2px;
+  text-shadow: 0 0 8px rgba(255, 178, 77, 0.6);
+}
+
+.how-keys {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 178, 77, 0.3);
+  color: #aee9ff !important;
+  font-size: 12px !important;
+  letter-spacing: 1px;
+}
+
+#how-close {
+  min-width: 200px;
+  min-height: 48px;
+  background: rgba(30, 14, 10, 0.7);
+  border: 1px solid rgba(255, 178, 77, 0.6);
+  border-radius: 8px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#how-close:active {
+  transform: scale(0.96);
 }
 
 #pausebtn {
