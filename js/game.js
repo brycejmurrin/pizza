@@ -845,11 +845,14 @@
     const bw = o.w * 1.15;
     const bx = L.ovenX - bw / 2;
     const by = o.y - 18;
+    // raw -> good -> perfect -> overdone (still servable) -> burnt:
+    // a single gray/green/gold/amber/red progression so the bar reads
+    // left-to-right without the confusing repeated green.
     const zones = [
       [0, Q_RAW, [0.4, 0.4, 0.45, 1]],
       [Q_RAW, Q_PERFECT_LO, [0.25, 0.65, 0.3, 1]],
       [Q_PERFECT_LO, Q_PERFECT_HI, [1, 0.8, 0.2, 1]],
-      [Q_PERFECT_HI, Q_BURNT, [0.25, 0.65, 0.3, 1]],
+      [Q_PERFECT_HI, Q_BURNT, [0.95, 0.5, 0.12, 1]],
       [Q_BURNT, BAR_MAX, [0.8, 0.2, 0.2, 1]],
     ];
     const alpha = baking ? 1 : 0.3;
@@ -917,13 +920,15 @@
   }
 
   function drawAttract(L) {
-    // neon shop sign on the wall, above the title overlay
+    // neon shop sign high on the wall, clear of the centered title text
+    // (anchored to H, not custY, which sits much lower during play)
     if (Sprites.neonSign) {
-      Sprites.neonSign(L.W / 2, L.custY - 20, clamp(L.W * 0.028, 7, 13), worldT);
+      const signY = Math.max(100, L.H * (L.landscape ? 0.2 : 0.13));
+      Sprites.neonSign(L.W / 2, signY, clamp(L.W * 0.028, 7, 13), worldT);
     }
     // slowly spinning supreme pizza, kept below the overlay text
     const r = Math.min(L.W * 0.16, L.H * 0.13);
-    const cy = L.H * 0.8;
+    const cy = L.H * 0.82;
     Renderer.circle(L.W / 2, cy, r * 1.35, [1, 0.5, 0.15, 0.07], 32);
     Sprites.pizza(L.W / 2, cy, r,
       new Set(["sauce", "cheese", "pepperoni", "mushroom", "olive", "pepper", "anchovy", "onion", "jalapeno"]),
@@ -939,12 +944,16 @@
     }
 
     const L = layout();
-    drawScene(L);
 
     if (state === ST.ATTRACT) {
-      drawCounter(L);
-      drawAttract(L);
+      // The title screen splits wall/floor lower than gameplay so the
+      // neon sign and title text get the wall, and the pizza the floor.
+      const LA = Object.assign({}, L, { counterY: Math.round(L.H * 0.62) });
+      drawScene(LA);
+      drawCounter(LA);
+      drawAttract(LA);
     } else {
+      drawScene(L);
       drawCustomers(L);
       drawStations(L);
       drawBins(L);

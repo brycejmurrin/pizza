@@ -36,8 +36,9 @@ in-game instructions.
 - Every order needs **sauce + cheese** plus extras from the ticket.
   Seven extras: pepperoni, mushroom, olive, pepper, anchovy, onion,
   jalapeño. The match must be exact — no surprise anchovies.
-- The bake bar: gray = raw, green = done, **gold = perfect (+25 tip)**,
-  red = burnt. Raw and burnt pizzas get refused; trash them.
+- The bake bar: gray = raw, green = good, **gold = perfect (+25 tip)**,
+  amber = overdone (still servable), red = burnt. Raw and burnt pizzas
+  get refused; trash them.
 - Pay is 50 coins + up to 50 tip for speed + 25 for a perfect bake.
 - A customer who walks out costs a heart; lose all hearts and you're
   closed. Clearing a day restores one heart (max 4) and pays a 100-coin

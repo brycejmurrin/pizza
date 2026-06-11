@@ -99,6 +99,7 @@ html, body {
 #subtitle {
   font-size: clamp(11px, 1.8vw, 16px);
   letter-spacing: clamp(1px, 0.35vw, 2px);
+  line-height: 1.6;
   color: #ffdfb0;
   white-space: pre-line;
   max-width: 520px;
