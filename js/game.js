@@ -929,15 +929,11 @@
       const signY = Math.max(100, L.H * (L.landscape ? 0.2 : 0.13));
       Sprites.neonSign(L.W / 2, signY, clamp(L.W * 0.028, 7, 13), worldT);
     }
-    // slowly spinning supreme pizza: below the text in portrait,
-    // off to the right in landscape so the centered menu stays clear
-    const r = L.landscape
-      ? Math.min(L.W * 0.09, L.H * 0.22)
-      : Math.min(L.W * 0.16, L.H * 0.13);
-    const cx = L.landscape ? L.W * 0.84 : L.W / 2;
-    const cy = L.landscape ? L.H * 0.55 : L.H * 0.82;
-    Renderer.circle(cx, cy, r * 1.35, [1, 0.5, 0.15, 0.07], 32);
-    Sprites.pizza(cx, cy, r,
+    // slowly spinning supreme pizza, centered below the overlay text
+    const r = Math.min(L.W * 0.16, L.H * 0.13);
+    const cy = L.H * 0.82;
+    Renderer.circle(L.W / 2, cy, r * 1.35, [1, 0.5, 0.15, 0.07], 32);
+    Sprites.pizza(L.W / 2, cy, r,
       new Set(["sauce", "cheese", "pepperoni", "mushroom", "olive", "pepper", "anchovy", "onion", "jalapeno"]),
       1, worldT * 0.35);
   }

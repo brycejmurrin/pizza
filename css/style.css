@@ -330,12 +330,11 @@ kbd {
   }
 
   #overlay {
-    /* attract pizza sits off to the right in landscape, so the text
-       block can center vertically instead of being pushed up */
+    /* bottom padding lifts the text block above the centered pizza */
     padding:
       calc(env(safe-area-inset-top) + 32px)
       calc(env(safe-area-inset-right) + 24px)
-      6vh
+      16vh
       calc(env(safe-area-inset-left) + 24px);
     gap: clamp(6px, 1.5vh, 12px);
   }
