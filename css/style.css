@@ -330,10 +330,12 @@ kbd {
   }
 
   #overlay {
+    /* attract pizza sits off to the right in landscape, so the text
+       block can center vertically instead of being pushed up */
     padding:
       calc(env(safe-area-inset-top) + 32px)
       calc(env(safe-area-inset-right) + 24px)
-      clamp(12vh, 16vh, 18vh)
+      6vh
       calc(env(safe-area-inset-left) + 24px);
     gap: clamp(6px, 1.5vh, 12px);
   }
@@ -344,11 +346,11 @@ kbd {
   #howbtn     { min-height: 38px; font-size: clamp(10px, 1.5vh, 13px); }
 
   #pausemenu {
-    flex-direction: row;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(150px, 210px));
     justify-content: center;
-    align-items: center;
-    gap: clamp(5px, 1.2vw, 10px);
+    align-content: center;
+    gap: clamp(6px, 1.4vh, 10px) 10px;
     padding:
       calc(env(safe-area-inset-top) + 10px)
       calc(env(safe-area-inset-right) + 16px)
@@ -356,19 +358,24 @@ kbd {
       calc(env(safe-area-inset-left) + 16px);
   }
 
-  /* Title spans full width; buttons flow in two columns */
+  /* Title spans both columns; quit gets its own full-width row */
   #pausemenu h2 {
-    width: 100%;
+    grid-column: 1 / -1;
     text-align: center;
     font-size: clamp(18px, 4vh, 26px);
     margin-bottom: clamp(2px, 0.6vh, 8px);
   }
 
   #pausemenu button {
-    min-width: clamp(140px, 28vw, 190px);
-    min-height: clamp(32px, 5vh, 42px);
+    min-width: 0;
+    width: 100%;
+    min-height: clamp(34px, 6vh, 44px);
     font-size: clamp(10px, 1.8vh, 13px);
     letter-spacing: 2px;
+  }
+
+  #pausemenu button:last-child {
+    grid-column: 1 / -1;
   }
 
   #howto {

@@ -139,39 +139,33 @@
     const W = Renderer.width;
     const H = Renderer.height;
 
-    // Landscape: wide + short (phone on its side). Portrait: tall + narrow.
+    // Landscape: wide + short (phone on its side, or a desktop window).
     const landscape = W > H * 1.15;
     const narrow = !landscape && W < 620;
 
-    // Vertical anchors
+    // Vertical anchors — proportional to H so both orientations scale.
     const top = landscape ? 40 : 64;
-    // Portrait: proportion custY to H so customers sit lower on tall phones
-    // and tickets stay well clear of the HUD.
-    const custY = landscape
-      ? Math.max(130, top + 90)
-      : Math.round(H * 0.27);
-    // Portrait: grow customers on tall screens so they don't look tiny
-    const custScale = landscape ? 1.0 : clamp(H / 720, 1.0, 1.35);
-    const counterY = custY + (landscape ? 28 : 44);
+    const custY = Math.round(H * 0.27);
+    const custScale = landscape
+      ? clamp(H / 700, 0.9, 1.3)
+      : clamp(H / 720, 1.0, 1.35);
+    const counterY = custY + (landscape ? 26 : 44);
 
-    // Bin grid: 1 wide row in landscape, 2 rows in portrait
-    const binH = landscape ? Math.max(38, Math.floor(H * 0.11)) : (narrow ? 54 : 64);
-    const binGap = landscape ? 14 : 22;
-    const binRows = landscape ? 1 : 2;
-    const binPerRow = landscape ? BINS.length + 1 : 5; // +1 for trash
-    const binBottom = landscape ? 14 : 10;
-    const binAreaH = binRows * (binH + binGap) + 6;
+    // Topping bins: two rows of five in both orientations.
+    const binH = landscape ? clamp(Math.round(H * 0.105), 36, 64) : (narrow ? 54 : 64);
+    const binGap = landscape ? 16 : 22;
+    const binBottom = landscape ? 8 : 10;
+    const binAreaH = 2 * (binH + binGap) + 6;
     const binTop = H - binAreaH - binBottom;
 
-    const cellGap = landscape ? 6 : 8;
-    const cellW = Math.min((W - 16) / binPerRow - cellGap, 108);
+    const cellGap = 8;
+    const cellW = Math.min((W - 16) / 5 - cellGap, landscape ? 132 : 108);
     const bins = [];
     const items = BINS.concat(["trash"]);
     for (let i = 0; i < items.length; i++) {
-      const row = landscape ? 0 : (i < 5 ? 0 : 1);
-      const idx = landscape ? i : (i < 5 ? i : i - 5);
-      const count = landscape ? items.length : 5;
-      const rowW = count * (cellW + cellGap) - cellGap;
+      const row = i < 5 ? 0 : 1;
+      const idx = i < 5 ? i : i - 5;
+      const rowW = 5 * (cellW + cellGap) - cellGap;
       bins.push({
         type: items[i],
         x: W / 2 - rowW / 2 + idx * (cellW + cellGap),
@@ -181,10 +175,14 @@
       });
     }
 
-    const midTop = counterY + (landscape ? 16 : 36);
+    const midTop = counterY + (landscape ? 28 : 36);
     const midH = binTop - midTop;
     const stationY = midTop + midH * (landscape ? 0.52 : 0.58);
-    const pr = clamp(Math.min(W * (landscape ? 0.07 : 0.105), midH * 0.22), landscape ? 20 : 26, landscape ? 42 : 54);
+    const pr = clamp(
+      Math.min(W * (landscape ? 0.085 : 0.105), midH * (landscape ? 0.32 : 0.22)),
+      landscape ? 20 : 26,
+      landscape ? 48 : 54
+    );
 
     const ovenW = pr * 2.6;
     const ovenH = pr * 2.3;
@@ -199,7 +197,9 @@
     return {
       W, H, top, custY, counterY, bins, binTop,
       stationY, pr, landscape, custScale,
-      prepX: W * 0.18, ovenX: W * 0.5, readyX: W * 0.82,
+      prepX: W * (landscape ? 0.34 : 0.18),
+      ovenX: W * 0.5,
+      readyX: W * (landscape ? 0.66 : 0.82),
       ovenW, ovenH,
       ovenRect: { x: W * 0.5 - ovenW / 2, y: stationY - ovenH * 0.62, w: ovenW, h: ovenH },
       slots,
@@ -767,8 +767,10 @@
   }
 
   function drawCounter(L) {
-    Renderer.quad(0, L.counterY, L.W, 12, COUNTER_TOP);
-    Renderer.quad(0, L.counterY + 12, L.W, 26, COUNTER);
+    const lip = L.landscape ? 8 : 12;
+    const band = L.landscape ? 16 : 26;
+    Renderer.quad(0, L.counterY, L.W, lip, COUNTER_TOP);
+    Renderer.quad(0, L.counterY + lip, L.W, band, COUNTER);
   }
 
   function drawCustomers(L) {
@@ -888,11 +890,12 @@
 
   // Reputation hearts sit on the counter band, out of the busy top corners.
   function drawHearts(L) {
-    const y = L.counterY + 19;
+    const y = L.counterY + (L.landscape ? 12 : 19);
+    const s = L.landscape ? 9 : 12.5;
     for (let i = 0; i < HEARTS_MAX; i++) {
       const on = i < hearts;
-      Sprites.heart(22 + i * 27, y, 12.5, [0.16, 0.09, 0.05, 1]);
-      Sprites.heart(22 + i * 27, y, 11, on ? [1, 0.25, 0.4, 1] : [0.32, 0.21, 0.14, 1]);
+      Sprites.heart(20 + i * (s * 2.2), y, s, [0.16, 0.09, 0.05, 1]);
+      Sprites.heart(20 + i * (s * 2.2), y, s * 0.88, on ? [1, 0.25, 0.4, 1] : [0.32, 0.21, 0.14, 1]);
     }
   }
 
@@ -926,11 +929,15 @@
       const signY = Math.max(100, L.H * (L.landscape ? 0.2 : 0.13));
       Sprites.neonSign(L.W / 2, signY, clamp(L.W * 0.028, 7, 13), worldT);
     }
-    // slowly spinning supreme pizza, kept below the overlay text
-    const r = Math.min(L.W * 0.16, L.H * 0.13);
-    const cy = L.H * 0.82;
-    Renderer.circle(L.W / 2, cy, r * 1.35, [1, 0.5, 0.15, 0.07], 32);
-    Sprites.pizza(L.W / 2, cy, r,
+    // slowly spinning supreme pizza: below the text in portrait,
+    // off to the right in landscape so the centered menu stays clear
+    const r = L.landscape
+      ? Math.min(L.W * 0.09, L.H * 0.22)
+      : Math.min(L.W * 0.16, L.H * 0.13);
+    const cx = L.landscape ? L.W * 0.84 : L.W / 2;
+    const cy = L.landscape ? L.H * 0.55 : L.H * 0.82;
+    Renderer.circle(cx, cy, r * 1.35, [1, 0.5, 0.15, 0.07], 32);
+    Sprites.pizza(cx, cy, r,
       new Set(["sauce", "cheese", "pepperoni", "mushroom", "olive", "pepper", "anchovy", "onion", "jalapeno"]),
       1, worldT * 0.35);
   }
