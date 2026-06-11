@@ -784,10 +784,13 @@
   }
 
   function drawTicket(c, L) {
-    const w = 58;
-    const h = 66;
+    // Ticket sizes to the queue spacing so neighbours never overlap;
+    // the order pizza fills most of the card so it reads at a glance.
+    const gap = (L.W * 0.8) / DP.maxCust;
+    const w = clamp(Math.round(gap - 12), 56, L.landscape ? 74 : 92);
+    const h = Math.round(w * 1.12);
     const x = c.x - w / 2;
-    const y = Math.max(6, L.custY - Math.round(118 * L.custScale));
+    const y = Math.max(6, L.custY - Math.round(52 * L.custScale) - h);
     Sprites.roundedPanel(x - 2, y - 2, w + 4, h + 4, 5, [0, 0, 0, 0.45]);
     if (c.vip) {
       Sprites.roundedPanel(x - 3, y - 3, w + 6, h + 6, 5, [0.95, 0.78, 0.22, 0.95]);
@@ -795,14 +798,14 @@
       Sprites.roundedPanel(x - 3, y - 3, w + 6, h + 6, 5, [1.0, 0.35, 0.15, 0.95]);
     }
     Sprites.roundedPanel(x, y, w, h, 4, TICKET_BG);
-    Sprites.pizza(c.x, y + 26, 20, c.order, 1, c.slot * 1.3);
+    Sprites.pizza(c.x, y + h * 0.44, w * 0.40, c.order, 1, c.slot * 1.3);
     // patience bar
     const pw = (w - 10) * clamp(c.patience, 0, 1);
     const pc = c.patience > 0.5
       ? [0.3, 0.85, 0.4, 1]
       : c.patience > 0.25 ? [1, 0.75, 0.2, 1] : [1, 0.25, 0.3, 1];
-    Renderer.quad(x + 5, y + h - 12, w - 10, 7, [0, 0, 0, 0.25]);
-    Renderer.quad(x + 5, y + h - 12, pw, 7, pc);
+    Renderer.quad(x + 5, y + h - 13, w - 10, 8, [0, 0, 0, 0.25]);
+    Renderer.quad(x + 5, y + h - 13, pw, 8, pc);
     // pointer tail
     Renderer.tri(c.x - 7, y + h, c.x + 7, y + h, c.x, y + h + 9, TICKET_BG);
   }
@@ -967,7 +970,8 @@
     for (const c of customers) {
       if (c.state !== "wait") continue;
       const hw = Math.round(50 * L.custScale);
-      if (Math.abs(x - c.x) < hw && y > L.custY - Math.round(130 * L.custScale) && y < L.counterY + 30) {
+      // top bound covers the (taller) ticket as well as the customer
+      if (Math.abs(x - c.x) < hw && y > L.custY - Math.round(160 * L.custScale) && y < L.counterY + 30) {
         return { kind: "customer", cust: c };
       }
     }
