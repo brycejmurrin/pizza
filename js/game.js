@@ -143,10 +143,16 @@
     const landscape = W > H * 1.15;
     const narrow = !landscape && W < 620;
 
-    // Vertical anchors — scaled down in landscape to reclaim height
+    // Vertical anchors
     const top = landscape ? 40 : 64;
-    const custY = landscape ? Math.max(130, top + 90) : top + 86;
-    const counterY = custY + (landscape ? 28 : 42);
+    // Portrait: proportion custY to H so customers sit lower on tall phones
+    // and tickets stay well clear of the HUD.
+    const custY = landscape
+      ? Math.max(130, top + 90)
+      : Math.round(H * 0.27);
+    // Portrait: grow customers on tall screens so they don't look tiny
+    const custScale = landscape ? 1.0 : clamp(H / 720, 1.0, 1.35);
+    const counterY = custY + (landscape ? 28 : 44);
 
     // Bin grid: 1 wide row in landscape, 2 rows in portrait
     const binH = landscape ? Math.max(38, Math.floor(H * 0.11)) : (narrow ? 54 : 64);
@@ -192,7 +198,7 @@
 
     return {
       W, H, top, custY, counterY, bins, binTop,
-      stationY, pr, landscape,
+      stationY, pr, landscape, custScale,
       prepX: W * 0.18, ovenX: W * 0.5, readyX: W * 0.82,
       ovenW, ovenH,
       ovenRect: { x: W * 0.5 - ovenW / 2, y: stationY - ovenH * 0.62, w: ovenW, h: ovenH },
@@ -767,7 +773,7 @@
 
   function drawCustomers(L) {
     for (const c of customers) {
-      Sprites.customer(c.x, L.custY, worldT, c.pal, mood(c), c.flash, c.vip);
+      Sprites.customer(c.x, L.custY, worldT, c.pal, mood(c), c.flash, c.vip, L.custScale);
     }
     drawCounter(L);
     // tickets drawn over the counter so they never collide with heads
@@ -781,7 +787,7 @@
     const w = 58;
     const h = 66;
     const x = c.x - w / 2;
-    const y = Math.max(6, L.custY - 118); // clamp so ticket never clips off the top
+    const y = Math.max(6, L.custY - Math.round(118 * L.custScale));
     Sprites.roundedPanel(x - 2, y - 2, w + 4, h + 4, 5, [0, 0, 0, 0.45]);
     if (c.vip) {
       Sprites.roundedPanel(x - 3, y - 3, w + 6, h + 6, 5, [0.95, 0.78, 0.22, 0.95]);
@@ -960,7 +966,8 @@
     }
     for (const c of customers) {
       if (c.state !== "wait") continue;
-      if (Math.abs(x - c.x) < 46 && y > L.custY - 130 && y < L.counterY + 30) {
+      const hw = Math.round(50 * L.custScale);
+      if (Math.abs(x - c.x) < hw && y > L.custY - Math.round(130 * L.custScale) && y < L.counterY + 30) {
         return { kind: "customer", cust: c };
       }
     }

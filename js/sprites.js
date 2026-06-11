@@ -189,8 +189,9 @@ const Sprites = (function () {
   const CREAM = [0.97, 0.92, 0.78, 1];
 
   // mood: 0 happy, 1 neutral, 2 worried, 3 angry. flash > 0 tints red.
-  // vip (optional): gold outfit, crown, and sparkles for big spenders.
-  function customer(cx, cy, t, palIdx, mood, flash, vip) {
+  // vip: gold outfit, crown, sparkles. scale: uniform size multiplier (default 1).
+  function customer(cx, cy, t, palIdx, mood, flash, vip, scale) {
+    const s = scale || 1;
     const pal = PALETTES[palIdx % PALETTES.length];
     const bob = Math.sin(t * 3 + palIdx) * 2;
     const jit = mood >= 3 ? Math.sin(t * 40) * 1.6 : 0;
@@ -200,72 +201,71 @@ const Sprites = (function () {
     // body
     let body = vip ? GOLD : pal.body;
     if (flash > 0) body = lerpC(body, [1, 0.2, 0.2, 1], Math.min(1, flash));
-    R.circle(x - 18, y + 16, 9, body);
-    R.circle(x + 18, y + 16, 9, body);
-    R.quad(x - 18, y + 7, 36, 22, body);
-    R.quad(x - 23, y + 16, 46, 13, body);
+    R.circle(x - 18*s, y + 16*s, 9*s, body);
+    R.circle(x + 18*s, y + 16*s, 9*s, body);
+    R.quad(x - 18*s, y + 7*s, 36*s, 22*s, body);
+    R.quad(x - 23*s, y + 16*s, 46*s, 13*s, body);
     if (vip) {
-      // cream sash across the chest
-      R.rotQuad(x, y + 17, 38, 5, -0.22, CREAM);
+      R.rotQuad(x, y + 17*s, 38*s, 5*s, -0.22, CREAM);
     }
 
     // head
-    const hy = y - 12;
-    R.circle(x, hy, 17, pal.skin);
+    const hy = y - 12*s;
+    R.circle(x, hy, 17*s, pal.skin);
 
     // hair / hat
     if (pal.hat === 0) {
-      R.arc(x, hy, 12, 18, Math.PI * 1.02, Math.PI * 1.98, pal.hair, 14);
+      R.arc(x, hy, 12*s, 18*s, Math.PI * 1.02, Math.PI * 1.98, pal.hair, 14);
     } else if (pal.hat === 1) {
-      R.arc(x, hy - 1, 10, 18.5, Math.PI * 0.95, Math.PI * 2.05, pal.hair, 14);
-      R.circle(x - 14, hy + 2, 4.5, pal.hair);
-      R.circle(x + 14, hy + 2, 4.5, pal.hair);
+      R.arc(x, hy - s, 10*s, 18.5*s, Math.PI * 0.95, Math.PI * 2.05, pal.hair, 14);
+      R.circle(x - 14*s, hy + 2*s, 4.5*s, pal.hair);
+      R.circle(x + 14*s, hy + 2*s, 4.5*s, pal.hair);
     } else {
-      R.arc(x, hy - 3, 11, 17, Math.PI, Math.PI * 2, pal.hair, 12);
-      R.quad(x - 13, hy - 6, 26, 4, pal.hair);
+      R.arc(x, hy - 3*s, 11*s, 17*s, Math.PI, Math.PI * 2, pal.hair, 12);
+      R.quad(x - 13*s, hy - 6*s, 26*s, 4*s, pal.hair);
     }
 
     // VIP crown and twinkles, drawn over the hair
     if (vip) {
-      const cyn = hy - 17;
-      R.quad(x - 8, cyn - 2, 16, 4, GOLD);
-      R.tri(x - 8, cyn - 2, x - 5.3, cyn - 2, x - 6.6, cyn - 8, GOLD);
-      R.tri(x - 1.3, cyn - 2, x + 1.3, cyn - 2, x, cyn - 9, GOLD);
-      R.tri(x + 5.3, cyn - 2, x + 8, cyn - 2, x + 6.6, cyn - 8, GOLD);
-      sparkle(x - 24, hy - 14, 5, t * 1.3 + palIdx);
-      sparkle(x + 23, hy - 8, 4, t * 1.3 + palIdx + 2.1);
+      const cyn = hy - 17*s;
+      R.quad(x - 8*s, cyn - 2*s, 16*s, 4*s, GOLD);
+      R.tri(x - 8*s, cyn - 2*s, x - 5.3*s, cyn - 2*s, x - 6.6*s, cyn - 8*s, GOLD);
+      R.tri(x - 1.3*s, cyn - 2*s, x + 1.3*s, cyn - 2*s, x, cyn - 9*s, GOLD);
+      R.tri(x + 5.3*s, cyn - 2*s, x + 8*s, cyn - 2*s, x + 6.6*s, cyn - 8*s, GOLD);
+      sparkle(x - 24*s, hy - 14*s, 5, t * 1.3 + palIdx);
+      sparkle(x + 23*s, hy - 8*s, 4, t * 1.3 + palIdx + 2.1);
     }
 
     // eyes; blink shut ~0.15s out of every ~3s, staggered per palette
-    const ey = hy - 1;
+    const ey = hy - s;
     const blink = ((t + palIdx * 0.83) % 3.1) < 0.15;
     if (blink) {
-      R.quad(x - 8.6, ey + 1.6, 4.6, 1.4, DARK);
-      R.quad(x + 4, ey + 1.6, 4.6, 1.4, DARK);
+      R.quad(x - 8.6*s, ey + 1.6*s, 4.6*s, 1.4*s, DARK);
+      R.quad(x + 4*s, ey + 1.6*s, 4.6*s, 1.4*s, DARK);
     } else {
-      R.quad(x - 8, ey, 3.4, mood >= 2 ? 3 : 4.4, DARK);
-      R.quad(x + 4.6, ey, 3.4, mood >= 2 ? 3 : 4.4, DARK);
+      R.quad(x - 8*s, ey, 3.4*s, mood >= 2 ? 3*s : 4.4*s, DARK);
+      R.quad(x + 4.6*s, ey, 3.4*s, mood >= 2 ? 3*s : 4.4*s, DARK);
     }
     if (mood >= 3) {
-      R.rotQuad(x - 6.5, ey - 3.4, 8, 2, 0.45, DARK);
-      R.rotQuad(x + 6.5, ey - 3.4, 8, 2, -0.45, DARK);
+      R.rotQuad(x - 6.5*s, ey - 3.4*s, 8*s, 2*s, 0.45, DARK);
+      R.rotQuad(x + 6.5*s, ey - 3.4*s, 8*s, 2*s, -0.45, DARK);
     }
 
     // mouth
-    const my = hy + 8;
+    const my = hy + 8*s;
     if (mood === 0) {
-      R.arc(x, my - 2, 3.6, 5.6, 0.3, Math.PI - 0.3, DARK, 8);
+      R.arc(x, my - 2*s, 3.6*s, 5.6*s, 0.3, Math.PI - 0.3, DARK, 8);
     } else if (mood === 1) {
-      R.quad(x - 4, my, 8, 2.2, DARK);
+      R.quad(x - 4*s, my, 8*s, 2.2*s, DARK);
     } else {
-      R.arc(x, my + 5, 3.6, 5.6, Math.PI + 0.3, Math.PI * 2 - 0.3, DARK, 8);
+      R.arc(x, my + 5*s, 3.6*s, 5.6*s, Math.PI + 0.3, Math.PI * 2 - 0.3, DARK, 8);
     }
 
     // steam mark when furious
     if (mood >= 3) {
       const rc = [1, 0.25, 0.3, 0.9];
-      R.rotQuad(x + 19, hy - 13, 9, 2.4, 0.6, rc);
-      R.rotQuad(x + 19, hy - 13, 9, 2.4, -0.6, rc);
+      R.rotQuad(x + 19*s, hy - 13*s, 9*s, 2.4*s, 0.6, rc);
+      R.rotQuad(x + 19*s, hy - 13*s, 9*s, 2.4*s, -0.6, rc);
     }
   }
 
