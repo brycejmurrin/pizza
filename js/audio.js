@@ -352,11 +352,11 @@ const GameAudio = (function () {
   }
 
   // ---------------------------------------------------------------------
-  // Background music (looping tarantella chiptune, lookahead-scheduled)
+  // Background music (looping chiptune, lookahead-scheduled).
+  // Four songs rotate by day: day 1 plays song 1, day 5 wraps to song 1.
   // ---------------------------------------------------------------------
 
   const MUSIC_GAIN = 0.5; // music bus level into master
-  const MUSIC_BASE_EIGHTH = 60 / 152; // 152 BPM eighth-note feel
   const MUSIC_TICK_MS = 200; // scheduler poll interval
 
   let musicGain = null; // dedicated bus into master (so mute still works)
@@ -365,20 +365,80 @@ const GameAudio = (function () {
   let musicNextBar = 0; // ctx time of the next unscheduled bar
   let musicBarIndex = 0; // running bar counter (pattern position)
   let musicEighth = 0; // current eighth-note duration in seconds
+  let musicSong = null; // the song object currently looping
 
-  // Tarantella in A: four bars of 6/8 eighth-note melody over a
-  // dotted-quarter bass. Values are midi note numbers, 0 = rest.
-  const MUSIC_MELODY = [
-    [69, 73, 76, 81, 76, 73], // A major, up and back
-    [69, 74, 78, 81, 78, 74], // D major (IV) bounce
-    [69, 73, 76, 81, 76, 73], // A major again
-    [68, 71, 76, 80, 76, 71], // E major (V) turnaround
-  ];
-  const MUSIC_BASS = [
-    [45, 52], // A2 E3
-    [50, 45], // D3 A2
-    [45, 52], // A2 E3
-    [40, 52], // E2 E3
+  // All songs are 6/8 chiptune: each melody bar is six eighth-notes
+  // (midi numbers, 0 = rest); each bass bar is two dotted-quarter notes.
+  // bpm is the eighth-note pulse; wave is the lead oscillator type.
+  const MUSIC_SONGS = [
+    { // "Tarantella" — bouncy A-major romp
+      bpm: 176, wave: "square",
+      melody: [
+        [69, 73, 76, 81, 76, 73],
+        [69, 74, 78, 81, 78, 74],
+        [69, 73, 76, 81, 76, 73],
+        [68, 71, 76, 80, 76, 71],
+        [81, 80, 81, 83, 81, 80],
+        [78, 76, 78, 81, 78, 76],
+        [76, 78, 80, 81, 80, 78],
+        [76, 73, 69, 73, 76, 80],
+      ],
+      bass: [
+        [45, 52], [50, 45], [45, 52], [40, 52],
+        [45, 52], [50, 45], [40, 47], [45, 45],
+      ],
+    },
+    { // "Mozzarella Mambo" — bright C-major strut
+      bpm: 188, wave: "sawtooth",
+      melody: [
+        [72, 76, 79, 84, 79, 76],
+        [74, 77, 81, 84, 81, 77],
+        [76, 79, 83, 88, 83, 79],
+        [84, 83, 81, 79, 77, 74],
+        [72, 76, 79, 84, 79, 76],
+        [74, 77, 81, 86, 81, 77],
+        [88, 86, 84, 83, 81, 79],
+        [84, 0, 79, 0, 72, 0],
+      ],
+      bass: [
+        [48, 55], [50, 57], [52, 59], [55, 50],
+        [48, 55], [50, 57], [43, 50], [48, 48],
+      ],
+    },
+    { // "Pepperoni Polka" — G-major oom-pah with off-beat rests
+      bpm: 168, wave: "square",
+      melody: [
+        [79, 0, 79, 81, 79, 78],
+        [76, 0, 76, 78, 76, 74],
+        [71, 74, 78, 79, 78, 74],
+        [79, 78, 76, 74, 72, 71],
+        [79, 0, 79, 81, 79, 78],
+        [76, 0, 76, 78, 76, 74],
+        [74, 76, 78, 79, 81, 83],
+        [86, 83, 79, 74, 79, 0],
+      ],
+      bass: [
+        [43, 50], [43, 50], [50, 45], [43, 50],
+        [43, 50], [43, 50], [38, 45], [43, 43],
+      ],
+    },
+    { // "Diavola Drive" — driving E-minor groove
+      bpm: 196, wave: "sawtooth",
+      melody: [
+        [64, 67, 71, 76, 71, 67],
+        [62, 66, 69, 74, 69, 66],
+        [64, 67, 71, 76, 79, 76],
+        [74, 71, 69, 67, 66, 64],
+        [76, 0, 76, 78, 79, 78],
+        [74, 0, 74, 76, 78, 76],
+        [71, 74, 76, 79, 81, 83],
+        [88, 86, 83, 79, 76, 74],
+      ],
+      bass: [
+        [40, 47], [38, 45], [40, 47], [35, 47],
+        [40, 47], [38, 45], [43, 50], [40, 40],
+      ],
+    },
   ];
 
   // Like tone() but with an absolute start time, routed to the music bus.
@@ -413,20 +473,57 @@ const GameAudio = (function () {
     src.stop(when + 0.05);
   }
 
-  // Schedule one full 6/8 bar (melody + bass + hats) starting at t0.
+  // Kick drum: a fast sine pitch-drop. Drives the two big beats of the bar.
+  function musicKick(when) {
+    const osc = ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(160, when);
+    osc.frequency.exponentialRampToValueAtTime(45, when + 0.1);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.22, when);
+    g.gain.exponentialRampToValueAtTime(0.001, when + 0.12);
+    osc.connect(g);
+    g.connect(musicGain);
+    osc.start(when);
+    osc.stop(when + 0.14);
+  }
+
+  // Snare: a snap of bandpassed noise on the backbeat.
+  function musicSnare(when) {
+    const src = ctx.createBufferSource();
+    src.buffer = noiseBuffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(2500, when);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.09, when);
+    g.gain.exponentialRampToValueAtTime(0.001, when + 0.09);
+    src.connect(filter);
+    filter.connect(g);
+    g.connect(musicGain);
+    src.start(when);
+    src.stop(when + 0.1);
+  }
+
+  // Schedule one full 6/8 bar (melody + bass + drums) starting at t0.
   function musicScheduleBar(t0) {
     const e = musicEighth;
-    const mel = MUSIC_MELODY[musicBarIndex % MUSIC_MELODY.length];
-    const bass = MUSIC_BASS[musicBarIndex % MUSIC_BASS.length];
+    const mel = musicSong.melody[musicBarIndex % musicSong.melody.length];
+    const bass = musicSong.bass[musicBarIndex % musicSong.bass.length];
+    // sawtooth leads are buzzier, so they run a touch quieter
+    const leadGain = musicSong.wave === "sawtooth" ? 0.055 : 0.07;
     for (let i = 0; i < 6; i++) {
       if (mel[i] > 0) {
-        musicTone(t0 + i * e, "square", mf(mel[i]), e * 0.85, 0.07);
+        musicTone(t0 + i * e, musicSong.wave, mf(mel[i]), e * 0.85, leadGain);
       }
       // hat on every eighth, slightly accented on the two big beats
       musicHat(t0 + i * e, i % 3 === 0 ? 0.025 : 0.015);
     }
     musicTone(t0, "triangle", mf(bass[0]), e * 2.6, 0.09);
     musicTone(t0 + 3 * e, "triangle", mf(bass[1]), e * 2.6, 0.09);
+    musicKick(t0);
+    musicKick(t0 + 3 * e);
+    musicSnare(t0 + 3 * e);
     musicBarIndex++;
   }
 
@@ -450,9 +547,11 @@ const GameAudio = (function () {
       const d = Math.max(1, Math.floor(day || 1));
       if (musicTimer != null && d === musicDay) return; // already playing
       musicStop();
+      // a different song each day, wrapping back around after the last
+      musicSong = MUSIC_SONGS[(d - 1) % MUSIC_SONGS.length];
       // tempo creeps up 2% per day after the first, capped at +20%
       const speed = 1 + Math.min(0.2, (d - 1) * 0.02);
-      musicEighth = MUSIC_BASE_EIGHTH / speed;
+      musicEighth = 60 / musicSong.bpm / speed;
       musicDay = d;
       musicBarIndex = 0;
       musicGain = ctx.createGain();

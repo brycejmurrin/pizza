@@ -51,8 +51,9 @@ in-game instructions.
   base but patience drains at twice the normal rate.
 - Days get busier: more simultaneous customers, more extras per order,
   thinner patience. High score is saved locally.
-- Looping chiptune tarantella plays during shifts (it speeds up as the
-  days go on); toggle sound from the pause menu.
+- Four upbeat chiptune tracks rotate daily — a tarantella, a mambo, a
+  polka, and a driving minor groove — each speeding up slightly as the
+  days go on. Toggle sound from the pause menu.
 
 ## Running it
 
