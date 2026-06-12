@@ -344,6 +344,14 @@ const GameAudio = (function () {
     }
   }
 
+  function critic() {
+    // the critic arrives: stern low fifth, then two curious high blips
+    tone({ type: "triangle", f0: mf(48), dur: 0.3, gain: 0.3 });
+    tone({ type: "triangle", f0: mf(55), dur: 0.3, t: 0.02, gain: 0.22 });
+    tone({ type: "square", f0: mf(72), dur: 0.08, t: 0.34, gain: 0.15 });
+    tone({ type: "square", f0: mf(76), dur: 0.12, t: 0.44, gain: 0.15 });
+  }
+
   function heartGain() {
     // warm two-note chime: E5 then B5 on soft triangles + sine shimmer
     tone({ type: "triangle", f0: mf(76), dur: 0.25, gain: 0.3 });
@@ -622,6 +630,7 @@ const GameAudio = (function () {
     coin: guarded(coin),
     combo: guarded(combo),
     vip: guarded(vip),
+    critic: guarded(critic),
     heartGain: guarded(heartGain),
     // musicStart/musicStop manage their own state and guard internally.
     musicStart: musicStart,

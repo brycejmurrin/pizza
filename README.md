@@ -37,9 +37,19 @@ in-game instructions.
   Seven extras: pepperoni, mushroom, olive, pepper, anchovy, onion,
   jalapeño. The match must be exact — no surprise anchovies.
 - **Specialty pizzas:** from day 2, some tickets carry a named recipe
-  (DIAVOLA, VEGGIE, NAPOLI, BIANCA, MARINARA, SUPREME) worth +20.
-  Two of them are curveballs: the BIANCA takes no sauce and the
-  MARINARA takes no cheese.
+  worth +20. Thirteen recipes unlock across the first eight days, from
+  the two-ingredient MARGHERITA to the all-nine-toppings FULL NEON —
+  including traps: BIANCA and VERDE take no sauce, MARINARA and
+  PUTTANESCA take no cheese, INFERNO is DIAVOLA plus onion, and
+  STAGIONI is one topping away from SUPREME.
+- **Happy hour:** once a day, partway through the shift, tips double
+  for 12 seconds.
+- **The critic:** from day 6 a silver-ticket food critic may visit
+  (once a day at most). Only a *perfect* bake satisfies — anything
+  less is refused. A rave review pays a flat 200 and restores a heart.
+- **Game over** shows a full run summary — days survived, serves,
+  perfects, best combo — and a rank from DISHWASHER to PIZZA LEGEND
+  based on your final haul.
 - The bake bar: gray = raw, green = good, **gold = perfect (+25 tip)**,
   amber = overdone (still servable), red = burnt. Raw and burnt pizzas
   get refused; trash them.

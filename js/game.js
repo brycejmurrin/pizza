@@ -74,11 +74,30 @@
   const SPECIALS = [
     { name: "DIAVOLA", top: ["sauce", "cheese", "pepperoni", "jalapeno"], day: 2 },
     { name: "VEGGIE", top: ["sauce", "cheese", "mushroom", "pepper", "onion"], day: 2 },
+    { name: "MARGHERITA", top: ["sauce", "cheese"], day: 2 },                  // the minimal trap
     { name: "NAPOLI", top: ["sauce", "cheese", "anchovy", "olive"], day: 3 },
+    { name: "FUNGHI", top: ["sauce", "cheese", "mushroom"], day: 3 },
     { name: "BIANCA", top: ["cheese", "mushroom", "onion"], day: 4 },          // no sauce!
     { name: "MARINARA", top: ["sauce", "onion", "anchovy"], day: 5 },          // no cheese!
+    { name: "INFERNO", top: ["sauce", "cheese", "pepperoni", "jalapeno", "onion"], day: 5 }, // DIAVOLA + onion
     { name: "SUPREME", top: ["sauce", "cheese", "pepperoni", "mushroom", "olive", "pepper"], day: 6 },
+    { name: "VERDE", top: ["cheese", "pepper", "jalapeno"], day: 6 },          // no sauce either
+    { name: "PUTTANESCA", top: ["sauce", "olive", "anchovy", "jalapeno"], day: 7 }, // no cheese
+    { name: "STAGIONI", top: ["sauce", "cheese", "mushroom", "olive", "pepper", "anchovy"], day: 7 }, // SUPREME near-miss
+    { name: "FULL NEON", top: ["sauce", "cheese", "pepperoni", "mushroom", "olive", "pepper", "anchovy", "onion", "jalapeno"], day: 8 },
   ];
+
+  // The food critic: one visit per day at most, only a perfect bake will
+  // do, pays a flat fee and writes a rave review (+1 heart).
+  const CRITIC_DAY = 6;
+  const CRITIC_CHANCE = 0.1;
+  const CRITIC_DRAIN = 0.7; // lingers, judging
+  const CRITIC_PAY = 200;
+
+  // Happy hour: fires once per day partway through the shift, doubling
+  // tips for a short window.
+  const HH_DAY = 2;
+  const HH_DURATION = 12;
 
   const DAY_BONUS = 100;
   const HEARTS_MAX = 4;
@@ -105,7 +124,30 @@
   let dayPerfects = 0;  // per-day stats for the CLEAR screen
   let dayLost = 0;
   let dayBestStreak = 0;
+  let runServed = 0;    // whole-run stats for the game-over summary
+  let runPerfects = 0;
+  let runLost = 0;
+  let runBestCombo = 0;
+  let criticSeen = false; // at most one critic visit per day
+  let happyFired = false; // happy hour fires once per day
+  let happyT = 0;         // seconds of happy hour remaining
+  let flashT = 0;         // screen flash on a perfect bake
   let DP = dayParams(1);
+
+  // Rank titles by final coin haul, best first.
+  const RANKS = [
+    [8000, "PIZZA LEGEND"],
+    [5000, "NEON CHEF"],
+    [3000, "OVEN MASTER"],
+    [1500, "CHEESE WIZARD"],
+    [800, "SAUCE SLINGER"],
+    [300, "DOUGH BOY"],
+    [0, "DISHWASHER"],
+  ];
+  function rankFor(c) {
+    for (const r of RANKS) if (c >= r[0]) return r[1];
+    return RANKS[RANKS.length - 1][1];
+  }
 
   // --- Stations ---------------------------------------------------------------
   let prep = new Set();  // toppings on the pizza being built
@@ -294,6 +336,9 @@
     nextPal = (nextPal + 1 + Math.floor(Math.random() * 2)) % Sprites.paletteCount;
     const vip = day >= VIP_DAY && Math.random() < VIP_CHANCE;
     const rush = !vip && day >= RUSH_DAY && Math.random() < RUSH_CHANCE;
+    const critic = !special && !vip && !rush && !criticSeen &&
+      day >= CRITIC_DAY && Math.random() < CRITIC_CHANCE;
+    if (critic) criticSeen = true;
     customers.push({
       slot,
       x: -60,
@@ -306,8 +351,10 @@
       flash: 0,
       vip,
       rush,
+      critic,
     });
     if (vip && GameAudio.vip) GameAudio.vip();
+    if (critic && GameAudio.critic) GameAudio.critic();
   }
 
   function mood(c) {
@@ -402,6 +449,7 @@
     if (readyP.quality === "raw") return refuse(c, "RAW!");
     if (readyP.quality === "burnt") return refuse(c, "BURNT!");
     if (!setsEqual(readyP.top, c.order)) return refuse(c, "WRONG ORDER!");
+    if (c.critic && readyP.quality !== "perfect") return refuse(c, "NOT PERFECT!");
 
     const L = layout();
     c.state = "pending";
@@ -421,14 +469,20 @@
     const L = layout();
     streak++;
     if (streak > dayBestStreak) dayBestStreak = streak;
+    if (streak > runBestCombo) runBestCombo = streak;
     const mult = 1 + COMBO_STEP * Math.min(streak - 1, COMBO_CAP);
-    const tip = Math.round(TIP_MAX * c.patience * mult);
+    const tip = Math.round(TIP_MAX * c.patience * mult * (happyT > 0 ? 2 : 1));
     const bonus = fl.q === "perfect" ? PERFECT_BONUS : 0;
-    if (bonus) dayPerfects++;
+    if (bonus) {
+      dayPerfects++;
+      runPerfects++;
+      flashT = 0.25;
+    }
     const basePay = c.rush ? Math.round(BASE_PAY * RUSH_PAY) : BASE_PAY;
     let gain = basePay + tip + bonus;
     if (c.special) gain += SPECIAL_BONUS;
     if (c.vip) gain *= 2;
+    if (c.critic) gain = CRITIC_PAY; // flat fee — but the review is priceless
     coins += gain;
     if (coins > hiscore) hiscore = coins;
     updateHud();
@@ -455,10 +509,26 @@
     }
     if (c.special) {
       addFloat(x, fy, c.special + " +" + SPECIAL_BONUS, [0.55, 0.85, 1, 1], 3);
+      fy -= 20;
+    }
+    if (c.critic) {
+      addFloat(x, fy, "RAVE REVIEW!", [0.8, 0.85, 1, 1], 3.5);
+      if (hearts < HEARTS_MAX) {
+        hearts++;
+        if (GameAudio.heartGain) GameAudio.heartGain();
+      }
     }
     c.state = "happy";
     c.t = 0;
     served++;
+    runServed++;
+    // happy hour kicks in partway through the shift, once per day
+    if (!happyFired && day >= HH_DAY && served >= Math.ceil(DP.quota * 0.4) && served < DP.quota) {
+      happyFired = true;
+      happyT = HH_DURATION;
+      addFloat(L.W / 2, L.H * 0.45, "HAPPY HOUR! DOUBLE TIPS", [1, 0.8, 0.25, 1], 4);
+      GameAudio.coin();
+    }
     if (served >= DP.quota) dayClear();
   }
 
@@ -470,6 +540,7 @@
     hearts--;
     streak = 0;
     dayLost++;
+    runLost++;
     const L = layout();
     addFloat(L.slots[c.slot], L.custY - 70, "-1", [1, 0.3, 0.4, 1], 4);
     if (hearts <= 0) gameOver();
@@ -481,6 +552,10 @@
     hearts = 3;
     day = 1;
     streak = 0;
+    runServed = 0;
+    runPerfects = 0;
+    runLost = 0;
+    runBestCombo = 0;
     startDay();
     if (!pauseBtnShown) {
       pauseBtn.hidden = false;
@@ -502,6 +577,10 @@
     dayPerfects = 0;
     dayLost = 0;
     dayBestStreak = 0;
+    criticSeen = false;
+    happyFired = false;
+    happyT = 0;
+    flashT = 0;
     state = ST.INTRO;
     stateT = 0;
     updateHud();
@@ -563,7 +642,14 @@
       localStorage.setItem(HI_KEY, String(hiscore));
     }
     updateHud();
-    showOverlay("CLOSED", "The customers gave up on you.\nFinal haul: " + coins + " coins", "TAP TO CONTINUE", true);
+    showOverlay(
+      "CLOSED",
+      "Day " + day + " · " + runServed + " served · " + runPerfects + " perfect\n" +
+        runLost + " lost · best combo x" + runBestCombo +
+        "\nFinal haul: " + coins + " coins\nRANK: " + rankFor(coins),
+      "TAP TO CONTINUE",
+      true
+    );
     GameAudio.gameOver();
   }
 
@@ -672,6 +758,8 @@
       return;
     }
 
+    happyT = Math.max(0, happyT - dt);
+
     // spawn walk-ins
     spawnT -= dt;
     const active = customers.filter((c) => c.state === "in" || c.state === "wait" || c.state === "pending").length;
@@ -736,7 +824,7 @@
       } else if (c.state === "wait") {
         c.x = sx;
         if (state === ST.PLAY) {
-          c.patience -= dt * (c.vip ? VIP_DRAIN : c.rush ? RUSH_DRAIN : 1) / DP.patience;
+          c.patience -= dt * (c.vip ? VIP_DRAIN : c.rush ? RUSH_DRAIN : c.critic ? CRITIC_DRAIN : 1) / DP.patience;
           if (c.patience <= 0) {
             c.patience = 0;
             loseCustomer(c);
@@ -773,6 +861,7 @@
       if (p.t > 4 || p.y > Renderer.height + 10) confetti.splice(i, 1);
     }
     shakeT = Math.max(0, shakeT - dt);
+    flashT = Math.max(0, flashT - dt);
   }
 
   // --- Drawing ----------------------------------------------------------------
@@ -805,7 +894,9 @@
 
   function drawCustomers(L) {
     for (const c of customers) {
-      Sprites.customer(c.x, L.custY, worldT, c.pal, mood(c), c.flash, c.vip, L.custScale);
+      // little victory hop right after being served
+      const hop = c.state === "happy" && c.t < 0.5 ? -Math.abs(Math.sin(c.t * 12)) * 9 : 0;
+      Sprites.customer(c.x, L.custY + hop, worldT, c.pal, mood(c), c.flash, c.vip, L.custScale);
     }
     drawCounter(L);
     // tickets drawn over the counter so they never collide with heads
@@ -828,12 +919,15 @@
       Sprites.roundedPanel(x - 3, y - 3, w + 6, h + 6, 5, [0.95, 0.78, 0.22, 0.95]);
     } else if (c.rush) {
       Sprites.roundedPanel(x - 3, y - 3, w + 6, h + 6, 5, [1.0, 0.35, 0.15, 0.95]);
+    } else if (c.critic) {
+      Sprites.roundedPanel(x - 3, y - 3, w + 6, h + 6, 5, [0.78, 0.82, 0.9, 0.95]);
     }
     Sprites.roundedPanel(x, y, w, h, 4, TICKET_BG);
-    if (c.special) {
-      // specialty name across the top of the ticket, sized to fit
-      const ts = Math.min(2, (w - 8) / (4 * c.special.length));
-      Sprites.text(c.x, y + 5, ts, c.special, [0.45, 0.28, 0.18, 1], "center");
+    const label = c.special || (c.critic ? "CRITIC" : null);
+    if (label) {
+      // name strip across the top of the ticket, sized to fit
+      const ts = Math.min(2, (w - 8) / (4 * label.length));
+      Sprites.text(c.x, y + 5, ts, label, [0.45, 0.28, 0.18, 1], "center");
       Sprites.pizza(c.x, y + h * 0.5, w * 0.36, c.order, 1, c.slot * 1.3);
     } else {
       Sprites.pizza(c.x, y + h * 0.44, w * 0.40, c.order, 1, c.slot * 1.3);
@@ -859,7 +953,12 @@
     const o = L.ovenRect;
     const baking = oven && oven.baking;
     const p = baking ? oven.t / BAKE_TIME : 0;
-    Sprites.oven(o.x, o.y, o.w, o.h, baking ? clamp(0.3 + p * 0.7, 0, 1) : 0.12, worldT);
+    let glow = baking ? clamp(0.3 + p * 0.7, 0, 1) : 0.12;
+    if (baking && p >= Q_PERFECT_LO && p <= Q_PERFECT_HI) {
+      // pulse so the golden window is felt, not just seen on the bar
+      glow = clamp(glow + 0.2 + 0.15 * Math.sin(worldT * 12), 0, 1.2);
+    }
+    Sprites.oven(o.x, o.y, o.w, o.h, glow, worldT);
     if (baking) {
       Sprites.pizza(L.ovenX, o.y + o.h * 0.62, o.w * 0.26, oven.top, p, 0.4);
     }
@@ -973,6 +1072,9 @@
     Sprites.pizza(L.W / 2, cy, r,
       new Set(["sauce", "cheese", "pepperoni", "mushroom", "olive", "pepper", "anchovy", "onion", "jalapeno"]),
       1, worldT * 0.35);
+    if (hiscore > 0) {
+      Sprites.text(L.W / 2, L.H - 16, 2.2, "BEST " + hiscore + " - " + rankFor(hiscore), LABEL, "center");
+    }
   }
 
   function draw() {
@@ -999,8 +1101,17 @@
       drawBins(L);
       drawHearts(L);
       drawFlights();
+      if (happyT > 0 && state === ST.PLAY) {
+        // warm glow over the dining room plus a countdown banner
+        Renderer.quad(0, 0, L.W, L.counterY, [1, 0.55, 0.15, 0.05 + 0.03 * Math.sin(worldT * 6)]);
+        Sprites.text(L.W / 2, L.counterY + (L.landscape ? 9 : 15), 2.2,
+          "HAPPY HOUR X2 TIPS " + Math.ceil(happyT), [1, 0.8, 0.25, 0.9], "center");
+      }
     }
     drawFx();
+    if (flashT > 0) {
+      Renderer.quad(0, 0, L.W, L.H, [1, 0.85, 0.3, flashT * 0.4]);
+    }
     Renderer.flush();
   }
 
