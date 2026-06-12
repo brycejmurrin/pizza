@@ -65,6 +65,21 @@
   const RUSH_CHANCE = 0.15;
   const RUSH_DRAIN = 2.0;  // rush customers lose patience twice as fast
   const RUSH_PAY = 1.5;    // but pay 1.5× base
+
+  // Named specialty pizzas: fixed recipes that appear on the ticket by
+  // name and pay a bonus. Later entries break the sauce+cheese rule.
+  const SPECIAL_DAY = 2;      // specials start showing up on this day
+  const SPECIAL_CHANCE = 0.3; // chance an order is a special
+  const SPECIAL_BONUS = 20;
+  const SPECIALS = [
+    { name: "DIAVOLA", top: ["sauce", "cheese", "pepperoni", "jalapeno"], day: 2 },
+    { name: "VEGGIE", top: ["sauce", "cheese", "mushroom", "pepper", "onion"], day: 2 },
+    { name: "NAPOLI", top: ["sauce", "cheese", "anchovy", "olive"], day: 3 },
+    { name: "BIANCA", top: ["cheese", "mushroom", "onion"], day: 4 },          // no sauce!
+    { name: "MARINARA", top: ["sauce", "onion", "anchovy"], day: 5 },          // no cheese!
+    { name: "SUPREME", top: ["sauce", "cheese", "pepperoni", "mushroom", "olive", "pepper"], day: 6 },
+  ];
+
   const DAY_BONUS = 100;
   const HEARTS_MAX = 4;
 
@@ -266,7 +281,16 @@
   function spawnCustomer() {
     const slot = freeSlot();
     if (slot < 0) return;
-    const extras = makeOrder();
+    // either a named specialty off the menu, or a build-your-own order
+    let special = null;
+    let order;
+    if (day >= SPECIAL_DAY && Math.random() < SPECIAL_CHANCE) {
+      const menu = SPECIALS.filter((s) => day >= s.day);
+      special = menu[Math.floor(Math.random() * menu.length)];
+      order = new Set(special.top);
+    } else {
+      order = new Set(["sauce", "cheese"].concat(makeOrder()));
+    }
     nextPal = (nextPal + 1 + Math.floor(Math.random() * 2)) % Sprites.paletteCount;
     const vip = day >= VIP_DAY && Math.random() < VIP_CHANCE;
     const rush = !vip && day >= RUSH_DAY && Math.random() < RUSH_CHANCE;
@@ -274,8 +298,8 @@
       slot,
       x: -60,
       t: 0,
-      extras,
-      order: new Set(["sauce", "cheese"].concat(extras)),
+      order,
+      special: special ? special.name : null,
       patience: 1,
       state: "in",
       pal: nextPal,
@@ -403,6 +427,7 @@
     if (bonus) dayPerfects++;
     const basePay = c.rush ? Math.round(BASE_PAY * RUSH_PAY) : BASE_PAY;
     let gain = basePay + tip + bonus;
+    if (c.special) gain += SPECIAL_BONUS;
     if (c.vip) gain *= 2;
     coins += gain;
     if (coins > hiscore) hiscore = coins;
@@ -423,8 +448,13 @@
     }
     if (c.vip) {
       addFloat(x, fy, "VIP X2", [0.95, 0.78, 0.22, 1], 3.5);
+      fy -= 20;
     } else if (c.rush) {
       addFloat(x, fy, "RUSH PAY", [1, 0.45, 0.2, 1], 3.5);
+      fy -= 20;
+    }
+    if (c.special) {
+      addFloat(x, fy, c.special + " +" + SPECIAL_BONUS, [0.55, 0.85, 1, 1], 3);
     }
     c.state = "happy";
     c.t = 0;
@@ -800,7 +830,14 @@
       Sprites.roundedPanel(x - 3, y - 3, w + 6, h + 6, 5, [1.0, 0.35, 0.15, 0.95]);
     }
     Sprites.roundedPanel(x, y, w, h, 4, TICKET_BG);
-    Sprites.pizza(c.x, y + h * 0.44, w * 0.40, c.order, 1, c.slot * 1.3);
+    if (c.special) {
+      // specialty name across the top of the ticket, sized to fit
+      const ts = Math.min(2, (w - 8) / (4 * c.special.length));
+      Sprites.text(c.x, y + 5, ts, c.special, [0.45, 0.28, 0.18, 1], "center");
+      Sprites.pizza(c.x, y + h * 0.5, w * 0.36, c.order, 1, c.slot * 1.3);
+    } else {
+      Sprites.pizza(c.x, y + h * 0.44, w * 0.40, c.order, 1, c.slot * 1.3);
+    }
     // patience bar
     const pw = (w - 10) * clamp(c.patience, 0, 1);
     const pc = c.patience > 0.5

@@ -33,9 +33,13 @@ in-game instructions.
 | Trash the pizza | `X` |
 | Serve customer 1–4 | `Q` `W` `E` `R` |
 | Pause / unpause | `P` or `Esc` |
-- Every order needs **sauce + cheese** plus extras from the ticket.
+- Most orders need **sauce + cheese** plus extras from the ticket.
   Seven extras: pepperoni, mushroom, olive, pepper, anchovy, onion,
   jalapeño. The match must be exact — no surprise anchovies.
+- **Specialty pizzas:** from day 2, some tickets carry a named recipe
+  (DIAVOLA, VEGGIE, NAPOLI, BIANCA, MARINARA, SUPREME) worth +20.
+  Two of them are curveballs: the BIANCA takes no sauce and the
+  MARINARA takes no cheese.
 - The bake bar: gray = raw, green = good, **gold = perfect (+25 tip)**,
   amber = overdone (still servable), red = burnt. Raw and burnt pizzas
   get refused; trash them.
